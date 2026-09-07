@@ -48,5 +48,3 @@ npm audit --omit=dev
 `supabase/migrations` содержит additive schema, composite tenant FK, RLS, optimistic guards, audit triggers и confirmed-email bootstrap. Миграцию сначала применяют к disposable-проекту.
 
 Без реального проекта следующие проверки имеют статус **NOT RUN**: login delivery/runtime, authenticated persistence между сессиями, два tenant, owner/manager/viewer, forged IDs, membership revocation, audit immutability/transaction rollback и optimistic conflict. Они обязательны перед использованием реальных данных.
-
-
