@@ -47,4 +47,6 @@ npm audit --omit=dev
 
 `supabase/migrations` содержит additive schema, composite tenant FK, RLS, optimistic guards, audit triggers и confirmed-email bootstrap. Миграцию сначала применяют к disposable-проекту.
 
-Без реального проекта следующие проверки имеют статус **NOT RUN**: login delivery/runtime, authenticated persistence между сессиями, два tenant, owner/manager/viewer, forged IDs, membership revocation, audit immutability/transaction rollback и optimistic conflict. Они обязательны перед использованием реальных данных.
+Live-проект Supabase `Relay CRM` подключён к production-домену. Схема применена транзакционно и проверена: 6 CRM-таблиц, RLS включён на всех 6 таблицах, активны 11 политик и 8 функций; право `DELETE` для роли `authenticated` отсутствует. Обратная миграция хранится в `supabase/rollback/202609070001_initial.down.sql` и перед применением прошла транзакционную репетицию `UP → DOWN → ROLLBACK` без остаточных объектов.
+
+До ввода реальных данных остаются runtime-проверки с тестовыми аккаунтами: login delivery, authenticated persistence между сессиями, два tenant, owner/manager/viewer, forged IDs, membership revocation, audit immutability/transaction rollback и optimistic conflict.

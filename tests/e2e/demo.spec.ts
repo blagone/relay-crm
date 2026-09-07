@@ -12,7 +12,18 @@ test("core demo workflow and persistence",async({page},testInfo)=>{
  const overflow=await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth);expect(overflow).toBe(true);
  await page.screenshot({path:`artifacts/screenshots/${testInfo.project.name}-demo.png`,fullPage:true});
 });
-test("cloud mode is explicit",async({page})=>{await page.goto("/app");await expect(page.getByRole("heading",{name:"Требуется подключение Supabase"})).toBeVisible();await expect(page.getByText("не настроено",{exact:true})).toHaveCount(2);});
+test("configured cloud mode exposes auth without mutating Supabase",async({page})=>{
+ await page.goto("/app");
+ await expect(page.getByRole("heading",{name:"Войти в Relay"})).toBeVisible();
+ await expect(page.getByLabel("Почта")).toBeVisible();
+ await expect(page.getByLabel("Пароль")).toBeVisible();
+ await expect(page.getByRole("button",{name:"Войти",exact:true})).toBeVisible();
+});
+test("unconfigured cloud mode reports both missing public settings",async({page})=>{
+ await page.goto("http://localhost:3241/app");
+ await expect(page.getByRole("heading",{name:"Требуется подключение Supabase"})).toBeVisible();
+ await expect(page.getByText("не настроено",{exact:true})).toHaveCount(2);
+});
 
 
 

@@ -1,0 +1,254 @@
+diff --git a/README.md b/README.md
+index 061b413..9c30c2d 100644
+--- a/README.md
++++ b/README.md
+@@ -47,4 +47,6 @@ npm audit --omit=dev
+
+ `supabase/migrations` содержит additive schema, composite tenant FK, RLS, optimistic guards, audit triggers и confirmed-email bootstrap. Миграцию сначала применяют к disposable-проекту.
+
+-Без реального проекта следующие проверки имеют статус **NOT RUN**: login delivery/runtime, authenticated persistence между сессиями, два tenant, owner/manager/viewer, forged IDs, membership revocation, audit immutability/transaction rollback и optimistic conflict. Они обязательны перед использованием реальных данных.
++Live-проект Supabase `Relay CRM` подключён к production-домену. Схема применена транзакционно и проверена: 6 CRM-таблиц, RLS включён на всех 6 таблицах, активны 11 политик и 8 функций; право `DELETE` для роли `authenticated` отсутствует. Обратная миграция хранится в `supabase/rollback/202609070001_initial.down.sql` и перед применением прошла транзакционную репетицию `UP → DOWN → ROLLBACK` без остаточных объектов.
++
++До ввода реальных данных остаются runtime-проверки с тестовыми аккаунтами: login delivery, authenticated persistence между сессиями, два tenant, owner/manager/viewer, forged IDs, membership revocation, audit immutability/transaction rollback и optimistic conflict.
+diff --git a/artifacts/verification/relay-crm-live-v1/MODIFIED_FILE b/artifacts/verification/relay-crm-live-v1/MODIFIED_FILE
+new file mode 100644
+index 0000000..6b0520d
+--- /dev/null
++++ b/artifacts/verification/relay-crm-live-v1/MODIFIED_FILE
+@@ -0,0 +1,38 @@
++-- Relay CRM initial-schema rollback.
++-- Source SHA256: F9731A59A787B389D41CC786BE034B9EDA1B124B5689311E669DD111F0D3A295
++-- PRECONDITIONS: pre-UP inventory established that all named CRM objects were absent;
++-- the UP transaction was committed successfully; any CRM data has been backed up.
++-- This removes CRM data together with the schema. Never use after a conflicting or
++-- partially applied UP unless object provenance has been independently established.
++-- Intentionally retains shared pgcrypto, auth.users, roles, and migration history.
++-- No CASCADE: an unexpected external dependency aborts and rolls back the whole DOWN.
++-- IF EXISTS makes a repeat DOWN harmless only while these names remain unrepurposed.
++BEGIN;
++SET LOCAL lock_timeout = '5s';
++SET LOCAL statement_timeout = '60s';
++
++DROP FUNCTION IF EXISTS public.bootstrap_workspace(text);
++
++-- Referencing tables precede referenced tables. Their indexes, constraints,
++-- RLS policies, triggers, and owned audit_events identity sequence drop with them.
++DROP TABLE IF EXISTS public.audit_events;
++DROP TABLE IF EXISTS public.notes;
++DROP TABLE IF EXISTS public.inquiries;
++DROP TABLE IF EXISTS public.clients;
++DROP TABLE IF EXISTS public.memberships;
++DROP TABLE IF EXISTS public.workspaces;
++
++-- Trigger functions remain after their owning tables and triggers are removed.
++DROP FUNCTION IF EXISTS public.audit_note_insert();
++DROP FUNCTION IF EXISTS public.guard_and_audit_inquiry_update();
++DROP FUNCTION IF EXISTS public.audit_inquiry_insert();
++DROP FUNCTION IF EXISTS public.normalize_inquiry_insert();
++DROP FUNCTION IF EXISTS public.guard_client_write();
++DROP FUNCTION IF EXISTS public.can_write_workspace(uuid);
++DROP FUNCTION IF EXISTS public.is_workspace_member(uuid);
++
++DROP TYPE IF EXISTS public.audit_action;
++DROP TYPE IF EXISTS public.inquiry_status;
++DROP TYPE IF EXISTS public.inquiry_source;
++DROP TYPE IF EXISTS public.member_role;
++COMMIT;
+diff --git a/artifacts/verification/relay-crm-live-v1/ROLLBACK.sh b/artifacts/verification/relay-crm-live-v1/ROLLBACK.sh
+new file mode 100755
+index 0000000..bdb4ffe
+--- /dev/null
++++ b/artifacts/verification/relay-crm-live-v1/ROLLBACK.sh
+@@ -0,0 +1,26 @@
++#!/usr/bin/env bash
++set -euo pipefail
++
++ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
++SQL="$ROOT/supabase/rollback/202609070001_initial.down.sql"
++EXPECTED="122361d41ed811308c869a1457de26b91c0b24f6e4051ac4228e9a3aa0cd050f"
++# Git may check out this text file with CRLF on Windows. Hash its canonical LF form.
++ACTUAL="$(tr -d '\r' < "$SQL" | sha256sum | awk '{print $1}')"
++
++if [[ "$ACTUAL" != "$EXPECTED" ]]; then
++  printf 'ROLLBACK=HASH_MISMATCH expected=%s actual=%s\n' "$EXPECTED" "$ACTUAL" >&2
++  exit 2
++fi
++
++if [[ "${1:-}" == "--dry-run" ]]; then
++  printf 'ROLLBACK=DRY_RUN_PASS sha256=%s state=ready-to-drop-6-tables-8-functions-4-enums\n' "$ACTUAL"
++  exit 0
++fi
++
++if [[ "${CONFIRM_RELAY_CRM_ROLLBACK:-}" != "YES" || -z "${DATABASE_URL:-}" ]]; then
++  printf 'ROLLBACK=NOT_CONFIRMED required=CONFIRM_RELAY_CRM_ROLLBACK=YES,DATABASE_URL\n' >&2
++  exit 3
++fi
++
++psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f "$SQL"
++printf 'ROLLBACK=APPLIED sha256=%s\n' "$ACTUAL"
+diff --git a/artifacts/verification/relay-crm-live-v1/VERIFICATION.txt b/artifacts/verification/relay-crm-live-v1/VERIFICATION.txt
+new file mode 100644
+index 0000000..d6d7505
+--- /dev/null
++++ b/artifacts/verification/relay-crm-live-v1/VERIFICATION.txt
+@@ -0,0 +1,85 @@
++Relay CRM live activation verification
++Date: 2026-09-07 (Europe/Moscow)
++Branch: main
++Original HEAD: ba3abf2ecbc7817496fa44cdef4d65f7bccb0fe8
++Changed fields: Supabase project display name; public CRM schema and RLS; Auth Site URL and callback allowlist; Vercel Production public Supabase configuration; deterministic configured/unconfigured cloud E2E coverage.
++
++FOUR ARTIFACTS (absolute paths)
++MODIFIED_FILE: D:\Data\SystemX\Projects\client-crm\artifacts\verification\relay-crm-live-v1\MODIFIED_FILE
++DIFF_FILE: D:\Data\SystemX\Projects\client-crm\artifacts\verification\relay-crm-live-v1\DIFF_FILE
++VERIFICATION.txt: D:\Data\SystemX\Projects\client-crm\artifacts\verification\relay-crm-live-v1\VERIFICATION.txt
++ROLLBACK.sh: D:\Data\SystemX\Projects\client-crm\artifacts\verification\relay-crm-live-v1\ROLLBACK.sh
++
++SOURCE AND COPY
++Original UP: D:\Data\SystemX\Projects\client-crm\supabase\migrations\202609070001_initial.sql
++Original UP SHA256: F9731A59A787B389D41CC786BE034B9EDA1B124B5689311E669DD111F0D3A295
++Original DOWN state: ABSENT at original HEAD
++Modified copy: MODIFIED_FILE, copied from the audited DOWN migration
++Modified copy raw Windows SHA256: F312DD1945BF484F7C941489667E66E7D285CF02E07D688667CD853CAA29E136
++Modified copy canonical-LF SHA256: 122361D41ED811308C869A1457DE26B91C0B24F6E4051AC4228E9A3AA0CD050F
++
++DATABASE BASELINE
++Command: Supabase SQL Editor Run
++Input: preflightSql (the exact SELECT below) against project coomzvyeqdnsrbkidrsi before UP.
++select
++  (select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relname in ('workspaces','memberships','clients','inquiries','notes','audit_events')) as conflicting_tables,
++  (select count(*) from pg_type t join pg_namespace n on n.oid=t.typnamespace where n.nspname='public' and t.typname in ('member_role','inquiry_source','inquiry_status','audit_action')) as conflicting_types,
++  (select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname in ('is_workspace_member','can_write_workspace','guard_client_write','normalize_inquiry_insert','audit_inquiry_insert','guard_and_audit_inquiry_update','audit_note_insert','bootstrap_workspace')) as conflicting_functions;
++Literal output/result: conflicting_tables=0, conflicting_types=0, conflicting_functions=0
++Exit/status: success
++
++DATABASE MODIFIED
++Command: Supabase SQL Editor Run
++Input: BEGIN; + exact bytes of supabase/migrations/202609070001_initial.sql + COMMIT; (12,766 characters; UP SHA256 above).
++Literal output/result: Success. No rows returned
++Exit/status: success
++
++Command: Supabase SQL Editor Run
++Input: postflightSql (the exact SELECT below).
++select
++ (select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relkind='r' and c.relname in ('workspaces','memberships','clients','inquiries','notes','audit_events')) as crm_tables,
++ (select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relname in ('workspaces','memberships','clients','inquiries','notes','audit_events') and c.relrowsecurity) as rls_tables,
++ (select count(*) from pg_policies where schemaname='public' and tablename in ('workspaces','memberships','clients','inquiries','notes','audit_events')) as rls_policies,
++ (select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname in ('is_workspace_member','can_write_workspace','guard_client_write','normalize_inquiry_insert','audit_inquiry_insert','guard_and_audit_inquiry_update','audit_note_insert','bootstrap_workspace')) as crm_functions,
++ (select count(*) from information_schema.role_table_grants where grantee='authenticated' and privilege_type='DELETE' and table_schema='public' and table_name in ('workspaces','memberships','clients','inquiries','notes','audit_events')) as authenticated_delete_grants;
++Literal output/result: crm_tables=6, rls_tables=6, rls_policies=11, crm_functions=8, authenticated_delete_grants=0
++Exit/status: success
++
++DATABASE ROLLBACK REHEARSAL ON ANOTHER COPY
++Command: Supabase SQL Editor Run
++Input: BEGIN; + exact UP bytes (SHA256 F9731A59A787B389D41CC786BE034B9EDA1B124B5689311E669DD111F0D3A295) + exact DOWN body without its outer BEGIN/COMMIT (canonical-LF SHA256 122361D41ED811308C869A1457DE26B91C0B24F6E4051AC4228E9A3AA0CD050F) + ROLLBACK; + exact preflightSql above. Composite input length: 14,714 characters.
++Literal output/result: conflicting_tables=0, conflicting_types=0, conflicting_functions=0
++Exit/status: success
++Restored behavior/status: the rehearsal restored the clean pre-UP state with zero named CRM tables, enums, and functions. The final live project was then changed by the separately committed UP and remains at the verified modified state 6/6/11/8/0.
++
++ROLLBACK ARTIFACT DRY RUN
++Command: & 'C:\Program Files\Git\bin\bash.exe' artifacts/verification/relay-crm-live-v1/ROLLBACK.sh --dry-run
++Input: audited DOWN file at supabase/rollback/202609070001_initial.down.sql
++Literal output/result: ROLLBACK=DRY_RUN_PASS sha256=122361d41ed811308c869a1457de26b91c0b24f6e4051ac4228e9a3aa0cd050f state=ready-to-drop-6-tables-8-functions-4-enums
++Exit/status: 0
++
++BASELINE TEST
++Command: npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run build; npm audit --omit=dev
++Input: original test assumptions with configured .env.local.
++Literal output/result: lint PASS; typecheck PASS; Test Files 5 passed (5), Tests 24 passed (24); E2E 2 passed, 2 failed because the configured cloud page correctly showed login instead of the old missing-config heading.
++Exit/status: 1
++
++MODIFIED TEST
++Command: npm run lint; npm run typecheck; npm test; npm run test:e2e; npm run build; npm audit --omit=dev
++Input: configured server on :3240 plus isolated unconfigured copy on :3241; no auth submit and no live DB mutation.
++Literal output/result: lint PASS; typecheck PASS; Test Files 5 passed (5), Tests 24 passed (24); 6 passed (50.3s); Compiled successfully; routes /, /app, /app/recover, /auth/callback, /demo; found 0 vulnerabilities.
++Exit/status: 0
++
++ANONYMOUS RLS CHECK
++Command: HTTP GET <Supabase URL>/rest/v1/workspaces?select=id&limit=1 with only the public apikey header.
++Input: anonymous request, no bearer session.
++Literal output/result: ANON_HTTP=401; code=42501; message=permission denied for table workspaces
++Exit/status: 0 (expected denial observed)
++
++PRODUCTION
++Command: vercel --prod --yes
++Input: production env names NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY, NEXT_PUBLIC_SITE_URL (values excluded).
++Literal output/result: readyState=READY; Aliased https://client-crm-ebon.vercel.app
++Exit/status: 0
++Browser result: /app heading "Войти в Relay" with email/password controls; /demo heading "Обзор" with local demo data.
++Supabase result: project display name "Relay CRM"; Site URL https://client-crm-ebon.vercel.app; callback https://client-crm-ebon.vercel.app/auth/callback.
+diff --git a/playwright.config.ts b/playwright.config.ts
+index 9a1965f..b50b841 100644
+--- a/playwright.config.ts
++++ b/playwright.config.ts
+@@ -1,3 +1,4 @@
+ import { defineConfig, devices } from "@playwright/test";
+-export default defineConfig({testDir:"./tests/e2e",workers:1,use:{baseURL:"http://localhost:3240",channel:"msedge",trace:"retain-on-failure"},webServer:{command:"npm run dev -- --port 3240",url:"http://localhost:3240",reuseExistingServer:true,timeout:120000},projects:[{name:"desktop",use:{...devices["Desktop Edge"]}},{name:"mobile",use:{viewport:{width:390,height:844},channel:"msedge"}}]});
++const unconfiguredServer=`powershell.exe -NoProfile -Command "$d=Join-Path (Get-Location) '.e2e-unconfigured'; Remove-Item -Recurse -Force $d -ErrorAction SilentlyContinue; New-Item -ItemType Directory -Path $d | Out-Null; Copy-Item src,public -Destination $d -Recurse; Copy-Item package.json,next.config.ts,tsconfig.json,postcss.config.mjs -Destination $d; $env:NEXT_PUBLIC_SUPABASE_URL='missing'; $env:NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY='missing'; node node_modules/next/dist/bin/next dev $d --port 3241 --webpack"`;
++export default defineConfig({testDir:"./tests/e2e",workers:1,use:{baseURL:"http://localhost:3240",channel:"msedge",trace:"retain-on-failure"},webServer:[{command:"npm run dev -- --port 3240",url:"http://localhost:3240",reuseExistingServer:true,timeout:120000},{command:unconfiguredServer,url:"http://localhost:3241",reuseExistingServer:true,timeout:120000}],projects:[{name:"desktop",use:{...devices["Desktop Edge"]}},{name:"mobile",use:{viewport:{width:390,height:844},channel:"msedge"}}]});
+
+diff --git a/supabase/rollback/202609070001_initial.down.sql b/supabase/rollback/202609070001_initial.down.sql
+new file mode 100644
+index 0000000..6b0520d
+--- /dev/null
++++ b/supabase/rollback/202609070001_initial.down.sql
+@@ -0,0 +1,38 @@
++-- Relay CRM initial-schema rollback.
++-- Source SHA256: F9731A59A787B389D41CC786BE034B9EDA1B124B5689311E669DD111F0D3A295
++-- PRECONDITIONS: pre-UP inventory established that all named CRM objects were absent;
++-- the UP transaction was committed successfully; any CRM data has been backed up.
++-- This removes CRM data together with the schema. Never use after a conflicting or
++-- partially applied UP unless object provenance has been independently established.
++-- Intentionally retains shared pgcrypto, auth.users, roles, and migration history.
++-- No CASCADE: an unexpected external dependency aborts and rolls back the whole DOWN.
++-- IF EXISTS makes a repeat DOWN harmless only while these names remain unrepurposed.
++BEGIN;
++SET LOCAL lock_timeout = '5s';
++SET LOCAL statement_timeout = '60s';
++
++DROP FUNCTION IF EXISTS public.bootstrap_workspace(text);
++
++-- Referencing tables precede referenced tables. Their indexes, constraints,
++-- RLS policies, triggers, and owned audit_events identity sequence drop with them.
++DROP TABLE IF EXISTS public.audit_events;
++DROP TABLE IF EXISTS public.notes;
++DROP TABLE IF EXISTS public.inquiries;
++DROP TABLE IF EXISTS public.clients;
++DROP TABLE IF EXISTS public.memberships;
++DROP TABLE IF EXISTS public.workspaces;
++
++-- Trigger functions remain after their owning tables and triggers are removed.
++DROP FUNCTION IF EXISTS public.audit_note_insert();
++DROP FUNCTION IF EXISTS public.guard_and_audit_inquiry_update();
++DROP FUNCTION IF EXISTS public.audit_inquiry_insert();
++DROP FUNCTION IF EXISTS public.normalize_inquiry_insert();
++DROP FUNCTION IF EXISTS public.guard_client_write();
++DROP FUNCTION IF EXISTS public.can_write_workspace(uuid);
++DROP FUNCTION IF EXISTS public.is_workspace_member(uuid);
++
++DROP TYPE IF EXISTS public.audit_action;
++DROP TYPE IF EXISTS public.inquiry_status;
++DROP TYPE IF EXISTS public.inquiry_source;
++DROP TYPE IF EXISTS public.member_role;
++COMMIT;
+diff --git a/tests/e2e/demo.spec.ts b/tests/e2e/demo.spec.ts
+index 4904223..ce18c8d 100644
+--- a/tests/e2e/demo.spec.ts
++++ b/tests/e2e/demo.spec.ts
+@@ -12,7 +12,18 @@ test("core demo workflow and persistence",async({page},testInfo)=>{
+  const overflow=await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth);expect(overflow).toBe(true);
+  await page.screenshot({path:`artifacts/screenshots/${testInfo.project.name}-demo.png`,fullPage:true});
+ });
+-test("cloud mode is explicit",async({page})=>{await page.goto("/app");await expect(page.getByRole("heading",{name:"Требуется подключение Supabase"})).toBeVisible();await expect(page.getByText("не настроено",{exact:true})).toHaveCount(2);});
++test("configured cloud mode exposes auth without mutating Supabase",async({page})=>{
++ await page.goto("/app");
++ await expect(page.getByRole("heading",{name:"Войти в Relay"})).toBeVisible();
++ await expect(page.getByLabel("Почта")).toBeVisible();
++ await expect(page.getByLabel("Пароль")).toBeVisible();
++ await expect(page.getByRole("button",{name:"Войти",exact:true})).toBeVisible();
++});
++test("unconfigured cloud mode reports both missing public settings",async({page})=>{
++ await page.goto("http://localhost:3241/app");
++ await expect(page.getByRole("heading",{name:"Требуется подключение Supabase"})).toBeVisible();
++ await expect(page.getByText("не настроено",{exact:true})).toHaveCount(2);
++});
