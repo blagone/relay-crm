@@ -1,0 +1,86 @@
+
+> relay-crm@0.1.0 lint
+> eslint
+
+
+> relay-crm@0.1.0 typecheck
+> tsc --noEmit
+
+
+> relay-crm@0.1.0 test
+> vitest run tests/unit
+
+
+ RUN  v3.2.4 D:/Data/SystemX/Projects/client-crm
+
+ ✓ tests/unit/migration.test.ts (4 tests) 5ms
+ ✓ tests/unit/supabase.test.ts (4 tests) 12ms
+ ✓ tests/unit/domain.test.ts (6 tests) 20ms
+
+ Test Files  3 passed (3)
+      Tests  14 passed (14)
+   Start at  22:03:45
+   Duration  1.19s (transform 222ms, setup 0ms, collect 1.22s, tests 36ms, environment 1ms, prepare 555ms)
+
+
+> relay-crm@0.1.0 test:e2e
+> playwright test
+
+[2m[WebServer] [22m(node:1000) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+[2m[WebServer] [22m(node:16840) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+[2m[WebServer] [22m(node:10748) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 4 tests using 1 worker
+
+(node:10528) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:10528) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok 1 [desktop] › tests\e2e\demo.spec.ts:3:5 › core demo workflow and persistence (3.0s)
+  ok 2 [desktop] › tests\e2e\demo.spec.ts:15:5 › cloud mode is explicit (1.8s)
+(node:9916) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:9916) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok 3 [mobile] › tests\e2e\demo.spec.ts:3:5 › core demo workflow and persistence (2.5s)
+  ok 4 [mobile] › tests\e2e\demo.spec.ts:15:5 › cloud mode is explicit (1.2s)
+
+  4 passed (19.0s)
+
+> relay-crm@0.1.0 build
+> next build
+
+▲ Next.js 16.3.4 (Turbopack)
+✓ Running next.config.ts took 50ms
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 1552ms
+  Running TypeScript ...
+  Finished TypeScript in 3.6s ...
+  Collecting page data using 3 workers ...
+  Generating static pages using 3 workers (0/6) ...
+  Generating static pages using 3 workers (1/6) 
+  Generating static pages using 3 workers (2/6) 
+  Generating static pages using 3 workers (4/6) 
+✓ Generating static pages using 3 workers (6/6) in 423ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ƒ /app
+├ ƒ /app/recover
+├ ƒ /auth/callback
+└ ○ /demo
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
+found 0 vulnerabilities
+MODIFIED_SUMMARY lint=0 typecheck=0 unit=0 e2e=0 build=0 audit=0

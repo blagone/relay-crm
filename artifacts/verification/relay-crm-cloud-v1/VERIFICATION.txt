@@ -1,0 +1,50 @@
+Relay CRM cloud V1 verification
+
+CHANGED BRANCH/FIELD
+branch: main
+field: Supabase SSR authentication, PKCE recovery, protected app shell and RLS-scoped server reads
+base commit: 4e1647a6925087a31b7e3f1826cdb188a64b4bb9
+original app page SHA256: E76EDEBC4655061C74AB04B2FE1C3889197A9EA462311A694557C067C208BFE1
+modified app page SHA256: 6EE8E2B67A07BA76974AC6774BCF7B536CD5EC2668145C142A441D585ECF8F75
+live state: cloud integration remains in the product tree; /demo remains unchanged in behavior
+
+FOUR ARTIFACTS
+MODIFIED_FILE: D:\Data\SystemX\Projects\client-crm\artifacts\verification\relay-crm-cloud-v1\MODIFIED_FILE
+DIFF_FILE: D:\Data\SystemX\Projects\client-crm\artifacts\verification\relay-crm-cloud-v1\DIFF_FILE
+VERIFICATION.txt: D:\Data\SystemX\Projects\client-crm\artifacts\verification\relay-crm-cloud-v1\VERIFICATION.txt
+ROLLBACK.sh: D:\Data\SystemX\Projects\client-crm\artifacts\verification\relay-crm-cloud-v1\ROLLBACK.sh
+
+BASELINE
+command: node -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('artifacts/verification/relay-crm-cloud-v1/baseline/package.json','utf8'));const s=fs.readFileSync('artifacts/verification/relay-crm-cloud-v1/baseline/app-page.tsx','utf8');const ok=!p.dependencies?.['@supabase/ssr']&&s.includes('Требуется подключение Supabase');console.log(ok?'BASELINE=PASS cloud-auth-client=absent; config-state=present':'BASELINE=FAIL');process.exit(ok?0:1)"
+input: D:\Data\SystemX\Projects\client-crm\artifacts\verification\relay-crm-cloud-v1\baseline\package.json and app-page.tsx
+literal output/result:
+BASELINE=PASS cloud-auth-client=absent; config-state=present
+BASELINE_EXIT=0
+exit status: 0
+
+MODIFIED
+command: npm test
+input: D:\Data\SystemX\Projects\client-crm (current modified tree)
+literal output/result:
+Test Files  3 passed (3)
+Tests  14 passed (14)
+MODIFIED_EXIT=0
+exit status: 0
+supporting exact suite output: D:\Data\SystemX\Projects\client-crm\artifacts\verification\relay-crm-cloud-v1\MODIFIED_TEST_OUTPUT.txt
+supporting result: MODIFIED_SUMMARY lint=0 typecheck=0 unit=0 e2e=0 build=0 audit=0
+
+ROLLBACK
+command: "C:\Program Files\Git\bin\bash.exe" "D:/Data/SystemX/Projects/client-crm/artifacts/verification/relay-crm-cloud-v1/ROLLBACK.sh" "D:/Data/SystemX/Projects/client-crm/artifacts/verification/relay-crm-cloud-v1/rollback-fixture-20260907-2208"
+input: separate Git clone of the modified repository with .relay-crm-rollback-target marker
+literal output/result:
+ROLLBACK=PASS commit=4e1647a6925087a31b7e3f1826cdb188a64b4bb9 state=cloud-auth-absent/local-demo-retained
+ROLLBACK_EXIT=0
+ROLLBACK_HEAD_MATCH=True
+LIVE_HEAD_DIFFERS_FROM_BASE=True
+exit status: 0
+restored behavior/status: the separate fixture returned to the original config-only /app while retaining the local /demo; the live product tree remains on Supabase SSR auth, PKCE recovery and protected server reads.
+
+CLOUD RUNTIME STATUS
+Local compile/static/session-boundary tests: PASS.
+Live Supabase Auth/RLS execution: NOT RUN because this account has no configured Supabase CLI session or project credentials.
+Production without env: explicit configuration state, never a demo fallback.

@@ -1,0 +1,303 @@
+diff --git a/.env.example b/.env.example
+index a3b6d74..4b7676b 100644
+--- a/.env.example
++++ b/.env.example
+@@ -1,6 +1,6 @@
+-# Public browser-safe Supabase URL. Required only for /app cloud mode.
++# Browser-safe HTTPS URL from Supabase project settings. Required for /app.
+ NEXT_PUBLIC_SUPABASE_URL=
+-# Public publishable key. Never place service_role credentials here.
++# Browser-safe publishable/anon key. Never use a service-role credential here.
+ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
+-# Canonical deployed origin, for example https://relay.example.com.
++# Exact canonical origin used for confirmation and password-recovery redirects.
+ NEXT_PUBLIC_SITE_URL=http://localhost:3000
+diff --git a/README.md b/README.md
+index f4a85f7..acdf5ed 100644
+--- a/README.md
++++ b/README.md
+@@ -1,43 +1,52 @@
+ # Relay CRM
+ 
+-Relay — компактная русскоязычная CRM для фрилансера или небольшой студии. Milestone A реализует полноценное локальное портфолио-демо; облачный режим намеренно не выдаётся за готовый без Supabase и проверок безопасности.
++Relay — компактная русскоязычная CRM для фрилансера или небольшой студии.
+ 
+-## Что работает в `/demo`
++## Два явных режима
+ 
+-- обзор с суммой воронки, выигранной выручкой и просроченными контактами;
+-- список заявок, поиск и фильтры по этапу/архиву;
+-- допустимые переходы статусов, архив и восстановление;
+-- создание клиентов и заявок, заметки и журнал действий;
+-- вымышленные seed-данные, версионированное Zod-валидируемое localStorage;
+-- восстановление после повреждённого/недоступного хранилища и подтверждённый сброс;
+-- клавиши `N` (новая заявка), `/` (поиск), `Escape` (закрыть);
+-- адаптивный интерфейс, native controls, skip-link и reduced-motion.
++### `/demo` — локальное портфолио-демо
+ 
+-`/app` — честная страница состояния cloud mode. Без переменных Supabase она показывает конфигурационную недоступность и **не** переключается на demo.
++- dashboard, клиенты, заявки, поиск и фильтры;
++- разрешённые переходы статусов, архив/восстановление, заметки и audit log;
++- вымышленные seed-данные и версионированное Zod-валидируемое localStorage;
++- восстановление повреждённого хранилища и подтверждённый reset;
++- клавиши `N`, `/`, `Escape`, мобильная вёрстка и доступные native controls.
+ 
+-## Запуск
++Изменения демо остаются в браузере и не предназначены для реальных контактов.
+ 
+-```bash
+-npm ci
+-npm run dev
+-```
++### `/app` — Supabase cloud slice
++
++Без корректных public env приложение показывает явное состояние конфигурации и не подменяет cloud mode демо-данными. При настроенном env доступны:
++
++- password login, signup и нейтральное password recovery сообщение;
++- PKCE recovery через allowlisted callback, защищённую `/app/recover` и серверное обновление пароля;
++- allowlisted auth callback и официальный cookie refresh через Next.js 16 `proxy.ts`;
++- проверка claims перед server-side reads и свежий `getUser()` перед bootstrap mutation;
++- создание первого workspace через ограниченный SQL RPC;
++- защищённый shell с server-side typed reads dashboard/clients/inquiries;
++- logout через Server Action.
+ 
+-Откройте `http://localhost:3000/demo`. Данные демо остаются только в текущем браузере и не подходят для реальных контактов.
++Приложение использует только browser-safe Supabase URL и publishable key. Административный ключ не требуется.
+ 
+-## Проверки
++## Запуск и проверки
+ 
+ ```bash
++npm ci
++npm run dev
+ npm run lint
+ npm run typecheck
+ npm test
++npm run test:e2e
+ npm run build
++npm audit --omit=dev
+ ```
+ 
+-## Будущий cloud mode
++Скопируйте `.env.example` в `.env.local`. Укажите точный `NEXT_PUBLIC_SITE_URL` и добавьте `${NEXT_PUBLIC_SITE_URL}/auth/callback` в разрешённые Supabase redirect URLs.
++
++## Database gate
++
++`supabase/migrations` содержит additive schema, composite tenant FK, RLS, optimistic guards, audit triggers и confirmed-email bootstrap. Миграцию сначала применяют к disposable-проекту.
++
++Без реального проекта следующие проверки имеют статус **NOT RUN**: login delivery/runtime, authenticated persistence между сессиями, два tenant, owner/manager/viewer, forged IDs, membership revocation, audit immutability/transaction rollback и optimistic conflict. Они обязательны перед использованием реальных данных.
+ 
+-1. Скопируйте `.env.example` в `.env.local` и заполните только public URL/publishable key Supabase и canonical site URL.
+-2. Примените `supabase/migrations` сначала к отдельному disposable-проекту.
+-3. Реализуйте SSR-сессии и серверные DTO/actions по `ARCHITECTURE.md`.
+-4. До production обязательно выполните RLS/Auth matrix из `THREAT_MODEL.md`: два tenant, owner/manager/viewer, forged IDs, revoked membership, audit immutability и optimistic conflict.
+ 
+-Service role key не нужен приложению и не должен попадать в репозиторий или клиентский bundle. На текущем этапе Auth/RLS интеграционные проверки помечаются **NOT RUN**: облачный проект не настроен.
+diff --git a/artifacts/screenshots/desktop-demo.png b/artifacts/screenshots/desktop-demo.png
+index f01543a..078da18 100644
+Binary files a/artifacts/screenshots/desktop-demo.png and b/artifacts/screenshots/desktop-demo.png differ
+diff --git a/artifacts/screenshots/mobile-demo.png b/artifacts/screenshots/mobile-demo.png
+index 722063d..80998f3 100644
+Binary files a/artifacts/screenshots/mobile-demo.png and b/artifacts/screenshots/mobile-demo.png differ
+diff --git a/package-lock.json b/package-lock.json
+index 8797ada..e512d19 100644
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -8,6 +8,8 @@
+       "name": "relay-crm",
+       "version": "0.1.0",
+       "dependencies": {
++        "@supabase/ssr": "^0.12.6",
++        "@supabase/supabase-js": "^2.116.0",
+         "next": "16.3.4",
+         "react": "19.2.8",
+         "react-dom": "19.2.8",
+@@ -2254,6 +2256,110 @@
+       "dev": true,
+       "license": "MIT"
+     },
++    "node_modules/@supabase/auth-js": {
++      "version": "2.116.0",
++      "resolved": "https://registry.npmjs.org/@supabase/auth-js/-/auth-js-2.116.0.tgz",
++      "integrity": "sha512-Cmosty12gyKGK9N3bQb+lMmuAFev5nmUzaR1AsmZHqKOAGzqX1VQzmp49CNPwOx/pw0H9Qqk4rs9yhwTlKpfDg==",
++      "license": "MIT",
++      "dependencies": {
++        "tslib": "2.8.1"
++      },
++      "engines": {
++        "node": ">=22.0.0"
++      }
++    },
++    "node_modules/@supabase/functions-js": {
++      "version": "2.116.0",
++      "resolved": "https://registry.npmjs.org/@supabase/functions-js/-/functions-js-2.116.0.tgz",
++      "integrity": "sha512-E+VOc2QDcni/fySqkBFiZhnoB3SGydEdZgFI6/dEAGAHx6yEhB46TN9qb2wXs+E+RSzOBV0R6dasiSlw4xlZAA==",
++      "license": "MIT",
++      "dependencies": {
++        "tslib": "2.8.1"
++      },
++      "engines": {
++        "node": ">=22.0.0"
++      }
++    },
++    "node_modules/@supabase/phoenix": {
++      "version": "0.4.5",
++      "resolved": "https://registry.npmjs.org/@supabase/phoenix/-/phoenix-0.4.5.tgz",
++      "integrity": "sha512-aAn9H9ovVyeApKy11OWOrrOGq8DV68yWeH4ud2lN9fzn4aO8Zb5GLL9m1pUg9nLqIcT+ZDfAcsZe0E/nqdv2lw==",
++      "license": "MIT"
++    },
++    "node_modules/@supabase/postgrest-js": {
++      "version": "2.116.0",
++      "resolved": "https://registry.npmjs.org/@supabase/postgrest-js/-/postgrest-js-2.116.0.tgz",
++      "integrity": "sha512-kGpVZTDHxFTJS3tu+rU0iTAZ+4U0bcLVjxwCk8f3gRhjw3qdCZjTBlgYvc4kGH2XccmAzbkKwXL/mrNHMGSc+A==",
++      "license": "MIT",
++      "dependencies": {
++        "tslib": "2.8.1"
++      },
++      "engines": {
++        "node": ">=22.0.0"
++      }
++    },
++    "node_modules/@supabase/realtime-js": {
++      "version": "2.116.0",
++      "resolved": "https://registry.npmjs.org/@supabase/realtime-js/-/realtime-js-2.116.0.tgz",
++      "integrity": "sha512-MHAnlXxi2s6yiJsZsQMfs2B3RFxeVfQWxerqYhIMqcCQV/FuY3LIeouPEkXw/ah7wUWMLYwempF9MOCUScyddg==",
++      "license": "MIT",
++      "dependencies": {
++        "@supabase/phoenix": "0.4.5",
++        "tslib": "2.8.1"
++      },
++      "engines": {
++        "node": ">=22.0.0"
++      }
++    },
++    "node_modules/@supabase/ssr": {
++      "version": "0.12.6",
++      "resolved": "https://registry.npmjs.org/@supabase/ssr/-/ssr-0.12.6.tgz",
++      "integrity": "sha512-JQ/hwN71p0HXWiETjCAY4sn51NeXCFj1s9l7/WQDp5O9yuF2HSja+rtjR6NWK4G3HigyNxYGwGKXabb4eYZy+Q==",
++      "license": "MIT",
++      "dependencies": {
++        "cookie": "^1.0.2"
++      },
++      "peerDependencies": {
++        "@supabase/supabase-js": "^2.114.0"
++      }
++    },
++    "node_modules/@supabase/storage-js": {
++      "version": "2.116.0",
++      "resolved": "https://registry.npmjs.org/@supabase/storage-js/-/storage-js-2.116.0.tgz",
++      "integrity": "sha512-6/3hR6vccBP6oGM5B6RfbwZcTCKmQOodd/ZWQdsw8yJsU5zO/a//oBL6yLnmgxcjnHSrelW8rsO7hL5DPybyUQ==",
++      "license": "MIT",
++      "dependencies": {
++        "iceberg-js": "^0.8.1",
++        "tslib": "2.8.1"
++      },
++      "engines": {
++        "node": ">=22.0.0"
++      }
++    },
++    "node_modules/@supabase/supabase-js": {
++      "version": "2.116.0",
++      "resolved": "https://registry.npmjs.org/@supabase/supabase-js/-/supabase-js-2.116.0.tgz",
++      "integrity": "sha512-YyWmKXt2NspV9iO8FPnlswUFJIRnrLd3oTCb+3ZyYRuKZtBH0xCUDgnUqoyA0fGUxpM/UhfwDjYf/dht/9bp7g==",
++      "license": "MIT",
++      "dependencies": {
++        "@supabase/auth-js": "2.116.0",
++        "@supabase/functions-js": "2.116.0",
++        "@supabase/postgrest-js": "2.116.0",
++        "@supabase/realtime-js": "2.116.0",
++        "@supabase/storage-js": "2.116.0"
++      },
++      "engines": {
++        "node": ">=22.0.0"
++      },
++      "peerDependencies": {
++        "@opentelemetry/api": ">=1.0.0"
++      },
++      "peerDependenciesMeta": {
++        "@opentelemetry/api": {
++          "optional": true
++        }
++      }
++    },
+     "node_modules/@swc/helpers": {
+       "version": "0.5.23",
+       "resolved": "https://registry.npmjs.org/@swc/helpers/-/helpers-0.5.23.tgz",
+@@ -3963,6 +4069,19 @@
+       "dev": true,
+       "license": "MIT"
+     },
++    "node_modules/cookie": {
++      "version": "1.1.1",
++      "resolved": "https://registry.npmjs.org/cookie/-/cookie-1.1.1.tgz",
++      "integrity": "sha512-ei8Aos7ja0weRpFzJnEA9UHJ/7XQmqglbRwnf2ATjcB9Wq874VKH9kfjjirM6UhU2/E5fFYadylyhFldcqSidQ==",
++      "license": "MIT",
++      "engines": {
++        "node": ">=18"
++      },
++      "funding": {
++        "type": "opencollective",
++        "url": "https://opencollective.com/express"
++      }
++    },
+     "node_modules/cross-spawn": {
+       "version": "7.0.6",
+       "resolved": "https://registry.npmjs.org/cross-spawn/-/cross-spawn-7.0.6.tgz",
+@@ -5345,6 +5464,15 @@
+         "hermes-estree": "0.25.1"
+       }
+     },
++    "node_modules/iceberg-js": {
++      "version": "0.8.1",
++      "resolved": "https://registry.npmjs.org/iceberg-js/-/iceberg-js-0.8.1.tgz",
++      "integrity": "sha512-1dhVQZXhcHje7798IVM+xoo/1ZdVfzOMIc8/rgVSijRK38EDqOJoGula9N/8ZI5RD8QTxNQtK/Gozpr+qUqRRA==",
++      "license": "MIT",
++      "engines": {
++        "node": ">=20.0.0"
++      }
++    },
+     "node_modules/ignore": {
+       "version": "5.3.2",
+       "resolved": "https://registry.npmjs.org/ignore/-/ignore-5.3.2.tgz",
+diff --git a/package.json b/package.json
+index ad79bd4..1fea96d 100644
+--- a/package.json
++++ b/package.json
+@@ -12,6 +12,8 @@
+     "test:e2e": "playwright test"
+   },
+   "dependencies": {
++    "@supabase/ssr": "^0.12.6",
++    "@supabase/supabase-js": "^2.116.0",
+     "next": "16.3.4",
+     "react": "19.2.8",
+     "react-dom": "19.2.8",
+diff --git a/src/app/app/page.tsx b/src/app/app/page.tsx
+index 360ef51..a059098 100644
+--- a/src/app/app/page.tsx
++++ b/src/app/app/page.tsx
+@@ -1,3 +1,9 @@
+ import Link from "next/link";
+-export const dynamic = "force-dynamic";
+-export default function AppPage() { const configured = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY); return <main className="setup"><div className="logo-mark">R</div><p className="eyebrow">RELAY CRM · CLOUD MODE</p><h1>{configured ? "Облачный кабинет готовится" : "Требуется подключение Supabase"}</h1><p>{configured ? "Переменные окружения найдены, но Milestone A не выдаёт интерфейс за проверенную авторизацию. Запустите cloud-проверки Milestone B." : "Рабочий кабинет не переключается на локальное демо автоматически. Настройте Supabase и проверьте авторизацию, RLS и хранение данных перед использованием."}</p><div className="config-list"><span>NEXT_PUBLIC_SUPABASE_URL</span><strong>{process.env.NEXT_PUBLIC_SUPABASE_URL ? "настроено" : "не настроено"}</strong><span>NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY</span><strong>{process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ? "настроено" : "не настроено"}</strong></div><Link className="secondary" href="/demo">Перейти в локальное демо</Link><Link className="text-link" href="/">← На главную</Link></main> }
++import { AuthPanel } from "@/components/cloud/auth-panel";
++import { CloudShell,WorkspaceSetup } from "@/components/cloud/cloud-shell";
++import { readSupabaseEnv } from "@/lib/supabase/env";
++import { createServerSupabase } from "@/lib/supabase/server";
++import { readCloudWorkspace } from "@/lib/server/queries";
++export const dynamic="force-dynamic";
++export default async function AppPage({searchParams}:{searchParams:Promise<Record<string,string|string[]|undefined>>}){const env=readSupabaseEnv();if(!env.configured)return <ConfigState missing={env.missing}/>;const params=await searchParams,supabase=await createServerSupabase(),{data,error}=await supabase.auth.getClaims(),claims=data?.claims;if(error||!claims?.sub)return <AuthPanel notice={typeof params.authError==="string"?params.authError:undefined}/>;const workspace=await readCloudWorkspace(claims.sub);if(!workspace)return <WorkspaceSetup email={typeof claims.email==="string"?claims.email:undefined} error={params.setup==="failed"?"failed":undefined}/>;return <CloudShell data={workspace} email={typeof claims.email==="string"?claims.email:undefined}/>}
++function ConfigState({missing}:{missing:string[]}){return <main className="setup"><div className="logo-mark">R</div><p className="eyebrow">RELAY CRM · CLOUD MODE</p><h1>Требуется подключение Supabase</h1><p>Рабочий кабинет не переключается на локальное демо автоматически. Настройте Supabase и проверьте авторизацию, RLS и хранение данных перед использованием.</p><div className="config-list">{missing.map(name=><div className="config-item" key={name}><span>{name}</span><strong>не настроено</strong></div>)}</div><Link className="secondary" href="/demo">Перейти в локальное демо</Link><Link className="text-link" href="/">← На главную</Link></main>}
+diff --git a/src/app/globals.css b/src/app/globals.css
+index 38a9107..d32e734 100644
+--- a/src/app/globals.css
++++ b/src/app/globals.css
+@@ -3,3 +3,8 @@
+ @media(max-width:900px){.shell{grid-template-columns:1fr}.shell aside{display:none}.shell>main{padding-bottom:90px}.demo-banner{margin-bottom:24px}.metrics{grid-template-columns:1fr 1fr}.client-grid{grid-template-columns:1fr 1fr}.mobile-nav{display:grid;grid-template-columns:repeat(4,1fr);position:fixed;bottom:0;left:0;right:0;background:#132723;padding:7px;z-index:5}.mobile-nav button{text-align:center;font-size:12px}.mobile-nav button.active{color:white;background:#25423c}}
+ @media(max-width:620px){.landing-grid{grid-template-columns:1fr}.landing-actions,.shell header,.top-actions{align-items:stretch;flex-direction:column}.setup{margin:0;min-height:100vh;border-radius:0;padding:30px}.setup h1{font-size:36px}.config-list{grid-template-columns:1fr}.demo-banner{display:grid}.shell header{align-items:stretch}.search{height:43px}.search input{width:100%}.metrics,.client-grid{grid-template-columns:1fr}.row{grid-template-columns:85px 1fr 20px}.row-date,.amount{display:none}.panel-head{padding:20px}.drawer{padding:35px 22px}.form-row{grid-template-columns:1fr}}
+ @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
++
++/* Authenticated cloud slice */
++.auth-page{min-height:100vh;display:grid;place-items:center;padding:24px;background:linear-gradient(135deg,#e8efec,#f8f8f3)}.auth-card{width:min(460px,100%);background:white;border:1px solid var(--line);border-radius:20px;padding:36px;box-shadow:0 25px 70px #14382e14}.auth-card h1{font-size:36px;letter-spacing:-.04em;margin:20px 0 8px}.auth-copy{color:var(--muted);line-height:1.55}.auth-card form,.setup form{display:grid;gap:14px;margin:24px 0}.auth-card label,.setup label{display:grid;gap:7px;font-size:13px;font-weight:700}.auth-card input,.setup input{padding:12px;border:1px solid #bdc9c5;border-radius:9px}.form-success{color:var(--teal);background:var(--soft);padding:10px;border-radius:8px}.auth-switch{display:flex;flex-wrap:wrap;gap:12px;border-top:1px solid var(--line);padding:18px 0}.auth-switch button{border:0;padding:0;background:none;color:var(--teal);text-decoration:underline;cursor:pointer}.config-list .config-item{display:contents}.cloud-shell{min-height:100vh;display:grid;grid-template-columns:220px 1fr}.cloud-shell>aside{background:#132723;color:#fff;padding:24px 18px;display:flex;flex-direction:column}.cloud-shell nav{display:grid;gap:5px}.cloud-shell nav a{color:#c8d7d3;text-decoration:none;padding:12px;border-radius:8px}.cloud-shell nav a:hover{background:#25423c}.cloud-shell aside form{margin-top:auto}.cloud-shell aside form button{border:0;background:none;color:white;text-decoration:underline;cursor:pointer}.cloud-shell>main{min-width:0;padding:42px clamp(20px,4vw,58px)}.cloud-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:30px}.cloud-head h1{font-size:38px;margin:0 0 5px}.cloud-head>div>span{color:var(--muted);font-size:13px}.cloud-badge{padding:8px 12px;border-radius:100px;background:#dbe6a5;font-size:12px;font-weight:800}.cloud-row{display:grid;grid-template-columns:1fr 120px 140px;gap:15px;padding:17px 22px;border-top:1px solid var(--line)}.cloud-row span{color:var(--muted)}.cloud-row b{text-align:right}.cloud-clients{margin-top:18px}.cloud-clients>article{display:flex;justify-content:space-between;padding:16px 24px;border-top:1px solid var(--line)}.cloud-clients>article span{color:var(--muted)}
++@media(max-width:900px){.cloud-shell{grid-template-columns:1fr}.cloud-shell>aside{display:none}.cloud-shell .metrics{grid-template-columns:1fr 1fr}}
++@media(max-width:620px){.auth-card{padding:26px}.cloud-shell .metrics{grid-template-columns:1fr}.cloud-head{align-items:flex-start;gap:10px}.cloud-row{grid-template-columns:1fr auto}.cloud-row b{grid-column:1/-1;text-align:left}}

@@ -1,0 +1,6 @@
+import { z } from "zod";
+function isBrowserSafeKey(key:string){if(key.startsWith("sb_secret_")||key.includes("service_role"))return false;try{const payload=key.split(".")[1];if(payload){const decoded=JSON.parse(atob(payload.replace(/-/g,"+").replace(/_/g,"/")));if(decoded?.role==="service_role")return false}}catch{/* Opaque publishable keys have no JWT payload. */}return key.length>=20}
+const schema=z.object({url:z.url().startsWith("https://"),publishableKey:z.string().refine(isBrowserSafeKey)});
+export type SupabasePublicEnv={url:string;publishableKey:string};
+export type EnvResult={configured:true;value:SupabasePublicEnv}|{configured:false;missing:string[]};
+export function readSupabaseEnv():EnvResult{const raw={url:process.env.NEXT_PUBLIC_SUPABASE_URL??"",publishableKey:process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY??""},parsed=schema.safeParse(raw);if(parsed.success)return{configured:true,value:parsed.data};const missing:string[]=[];if(!raw.url)missing.push("NEXT_PUBLIC_SUPABASE_URL");else if(!raw.url.startsWith("https://"))missing.push("NEXT_PUBLIC_SUPABASE_URL (требуется HTTPS URL)");if(!raw.publishableKey)missing.push("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY");else if(!isBrowserSafeKey(raw.publishableKey))missing.push("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY (требуется browser-safe ключ)");return{configured:false,missing}}
