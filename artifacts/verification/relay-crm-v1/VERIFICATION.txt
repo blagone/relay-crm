@@ -1,0 +1,46 @@
+Relay CRM V1 verification
+
+CHANGED BRANCH/FIELD
+branch: main
+field: demo CRM feature set + Supabase inquiry/client trigger, RLS and optimistic-version hardening
+original migration SHA256: 037A77A060DDEA71D15E8AA1B1B38ED1ACD5EE0476E033D3C8AC00ED207A4D4C
+modified migration SHA256: F9731A59A787B389D41CC786BE034B9EDA1B124B5689311E669DD111F0D3A295
+live state: modified migration remains in the working product tree
+
+FOUR ARTIFACTS
+MODIFIED_FILE: D:\Data\SystemX\Projects\client-crm\artifacts\verification\relay-crm-v1\MODIFIED_FILE
+DIFF_FILE: D:\Data\SystemX\Projects\client-crm\artifacts\verification\relay-crm-v1\DIFF_FILE
+VERIFICATION.txt: D:\Data\SystemX\Projects\client-crm\artifacts\verification\relay-crm-v1\VERIFICATION.txt
+ROLLBACK.sh: D:\Data\SystemX\Projects\client-crm\artifacts\verification\relay-crm-v1\ROLLBACK.sh
+
+BASELINE
+command: node -e "const fs=require('fs');const s=fs.readFileSync('artifacts/verification/relay-crm-v1/baseline/202609070001_initial.sql','utf8').toLowerCase();const bad=s.includes('create trigger inquiry_audit before insert or update')&&s.includes('for all to authenticated');console.log(bad?'BASELINE=FAIL before-insert-audit-fk-risk; for-all-delete-risk':'BASELINE=PASS');process.exit(bad?1:0)"
+input: D:\Data\SystemX\Projects\client-crm\artifacts\verification\relay-crm-v1\baseline\202609070001_initial.sql
+literal output/result:
+BASELINE=FAIL before-insert-audit-fk-risk; for-all-delete-risk
+exit status: 1 (expected regression reproduced)
+
+MODIFIED
+command: npm test
+input: D:\Data\SystemX\Projects\client-crm (current modified tree)
+literal output/result:
+Test Files  2 passed (2)
+Tests  10 passed (10)
+MODIFIED_EXIT=0
+exit status: 0
+supporting exact suite output: D:\Data\SystemX\Projects\client-crm\artifacts\verification\relay-crm-v1\MODIFIED_TEST_OUTPUT.txt
+supporting result: MODIFIED_SUMMARY lint=0 typecheck=0 unit=0 e2e=0 build=0
+
+ROLLBACK
+command: "C:\Program Files\Git\bin\bash.exe" "D:/Data/SystemX/Projects/client-crm/artifacts/verification/relay-crm-v1/ROLLBACK.sh" "D:/Data/SystemX/Projects/client-crm/artifacts/verification/relay-crm-v1/rollback-fixture-20260907-1923"
+input: separate fixture containing the modified migration and .relay-crm-rollback-target marker
+literal output/result:
+ROLLBACK=PASS hash=037A77A060DDEA71D15E8AA1B1B38ED1ACD5EE0476E033D3C8AC00ED207A4D4C state=original-single-trigger-and-policy
+ROLLBACK_EXIT=0
+ROLLBACK_HASH_MATCH=True
+LIVE_HASH=F9731A59A787B389D41CC786BE034B9EDA1B124B5689311E669DD111F0D3A295
+exit status: 0
+restored behavior/status: the separate fixture was restored byte-for-byte to the original single BEFORE INSERT/UPDATE trigger and original FOR ALL policies; the live product remains on the hardened split-trigger/no-delete state.
+
+CLOUD STATUS
+Supabase Auth/RLS runtime integration: NOT RUN because no configured Supabase project/credentials are present. The public deployment exposes only the local demo and an explicit cloud-unavailable state.

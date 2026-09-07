@@ -1,0 +1,82 @@
+
+> relay-crm@0.1.0 lint
+> eslint
+
+
+> relay-crm@0.1.0 typecheck
+> tsc --noEmit
+
+
+> relay-crm@0.1.0 test
+> vitest run tests/unit
+
+
+ RUN  v3.2.4 D:/Data/SystemX/Projects/client-crm
+
+ ✓ tests/unit/migration.test.ts (4 tests) 5ms
+ ✓ tests/unit/domain.test.ts (6 tests) 15ms
+
+ Test Files  2 passed (2)
+      Tests  10 passed (10)
+   Start at  19:20:01
+   Duration  658ms (transform 130ms, setup 0ms, collect 268ms, tests 20ms, environment 1ms, prepare 291ms)
+
+
+> relay-crm@0.1.0 test:e2e
+> playwright test
+
+[2m[WebServer] [22m(node:11232) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+[2m[WebServer] [22m(node:13076) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+[2m[WebServer] [22m⚠ Slow filesystem detected. The benchmark took 309ms. If \\?\D:\Data\SystemX\Projects\client-crm\.next\dev is a network drive, consider moving it to a local folder.
+[2m[WebServer] [22mSee more: https://nextjs.org/docs/app/guides/local-development
+[2m[WebServer] [22m(node:9572) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 4 tests using 1 worker
+
+(node:5176) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:5176) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok 1 [desktop] › tests\e2e\demo.spec.ts:3:5 › core demo workflow and persistence (2.4s)
+  ok 2 [desktop] › tests\e2e\demo.spec.ts:15:5 › cloud mode is explicit (1.2s)
+(node:16756) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:16756) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok 3 [mobile] › tests\e2e\demo.spec.ts:3:5 › core demo workflow and persistence (2.2s)
+  ok 4 [mobile] › tests\e2e\demo.spec.ts:15:5 › cloud mode is explicit (1.1s)
+
+  4 passed (14.3s)
+
+> relay-crm@0.1.0 build
+> next build
+
+▲ Next.js 16.3.4 (Turbopack)
+✓ Running next.config.ts took 42ms
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 1018ms
+  Running TypeScript ...
+  Finished TypeScript in 2.5s ...
+  Collecting page data using 3 workers ...
+  Generating static pages using 3 workers (0/5) ...
+  Generating static pages using 3 workers (1/5) 
+  Generating static pages using 3 workers (2/5) 
+  Generating static pages using 3 workers (3/5) 
+✓ Generating static pages using 3 workers (5/5) in 514ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ƒ /app
+└ ○ /demo
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
+MODIFIED_SUMMARY lint=0 typecheck=0 unit=0 e2e=0 build=0
