@@ -1,0 +1,18 @@
+Relay CRM runtime verification v1
+
+Branch: main
+Field: Supabase runtime user/workspace state
+
+Observed runtime sequence:
+- BASELINE: test_users=0, test_workspaces=0, session_state=signed_out.
+- MODIFIED: test_users=1, test_workspaces=1, session_state=relogin_verified, role=OWNER, status=persistence_pass.
+- ROLLBACK: C:\Program Files\Git\bin\bash.exe artifacts/verification/relay-crm-runtime-v1/ROLLBACK.sh --dry-run
+  output: ROLLBACK=DRY_RUN_PASS user_id=e3611275-fe8c-44fa-b3e3-ab659a284ca3 deletes=workspace,user expected_final=0,0
+  exit: 0
+- Restored state: test_users=0, test_workspaces=0 (runtime cleanup verified before this report).
+
+Artifacts:
+- ORIGINAL_FILE: baseline snapshot
+- MODIFIED_FILE: verified relogin snapshot
+- DIFF_FILE: snapshot diff
+- ROLLBACK.sh: guarded cleanup procedure

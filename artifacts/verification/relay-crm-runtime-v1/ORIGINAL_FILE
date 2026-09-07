@@ -1,0 +1,8 @@
+{
+  "branch": "main",
+  "field": "Supabase runtime user/workspace state",
+  "test_users": 0,
+  "test_workspaces": 0,
+  "session_state": "signed_out",
+  "status": "baseline"
+}

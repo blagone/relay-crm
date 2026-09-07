@@ -1,0 +1,11 @@
+{
+  "branch": "main",
+  "field": "Supabase runtime user/workspace state",
+  "test_users": 1,
+  "test_workspaces": 1,
+  "session_state": "relogin_verified",
+  "role": "OWNER",
+  "workspace_name": "Relay Runtime b33721de",
+  "user_id": "e3611275-fe8c-44fa-b3e3-ab659a284ca3",
+  "status": "persistence_pass"
+}
