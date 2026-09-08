@@ -23,8 +23,20 @@ export async function inviteTeamMember(_state: TeamState, form: FormData): Promi
   if (!parsed.success) return { status: "error", message: "Проверьте почту и роль." };
   const context = await ownerContext();
   if ("error" in context) return { status: "error", message: context.error };
-  const { error } = await context.supabase.rpc("invite_team_member", { wid: context.membership.workspace_id, invite_email: parsed.data.email, invite_role: parsed.data.role });
-  return result(error, "Приглашение создано на 7 дней. Передайте коллеге ссылку /app/team — письмо автоматически не отправляется.");
+  const { data: invitationId, error } = await context.supabase.rpc("invite_team_member", { wid: context.membership.workspace_id, invite_email: parsed.data.email, invite_role: parsed.data.role });
+  if (error || !invitationIdentitySchema.safeParse({ invitationId }).success) {
+    return result(error ?? new Error("invalid invitation response"), "");
+  }
+
+  // The function receives only the database-issued id. It derives and authorizes
+  // every mail field again under the caller's JWT; form values are never trusted.
+  const delivery = await context.supabase.functions.invoke("send-team-invitation", {
+    body: { invitationId },
+  }).catch(() => ({ data: null, error: new Error("delivery unavailable") }));
+  if (delivery.error || delivery.data?.ok !== true) {
+    return result(null, "Приглашение создано на 7 дней, но письмо сейчас не доставлено. Отзовите приглашение и создайте его снова или передайте коллеге ссылку /app/team.");
+  }
+  return result(null, "Приглашение создано на 7 дней. Письмо отправлено коллеге.");
 }
 export async function acceptTeamInvitation(_state: TeamState, form: FormData): Promise<TeamState> {
   const parsed = invitationIdentitySchema.safeParse({ invitationId: form.get("invitationId") });

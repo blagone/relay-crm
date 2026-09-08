@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { inviteTeamSchema, memberRoleSchema } from "../../src/lib/cloud/team-input";
-const mocks = vi.hoisted(() => ({ getUser: vi.fn(), maybeSingle: vi.fn(), rpc: vi.fn(), revalidatePath: vi.fn(), eq: vi.fn() }));
+const mocks = vi.hoisted(() => ({ getUser: vi.fn(), maybeSingle: vi.fn(), rpc: vi.fn(), invoke: vi.fn(), revalidatePath: vi.fn(), eq: vi.fn() }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
 vi.mock("@/lib/supabase/server", () => ({ createServerSupabase: async () => {
   const query = { select: () => query, eq: (...args: unknown[]) => { mocks.eq(...args); return query; }, order: () => query, limit: () => query, maybeSingle: mocks.maybeSingle };
-  return { auth: { getUser: mocks.getUser }, from: () => query, rpc: mocks.rpc };
+  return { auth: { getUser: mocks.getUser }, from: () => query, rpc: mocks.rpc, functions: { invoke: mocks.invoke } };
 } }));
 import { inviteTeamMember, acceptTeamInvitation, changeTeamMemberRole, removeTeamMember, revokeTeamInvitation } from "../../src/app/actions/team";
 const wid = "11111111-1111-4111-8111-111111111111";
@@ -16,7 +16,8 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.getUser.mockResolvedValue({ data: { user: { id: "owner" } }, error: null });
   mocks.maybeSingle.mockResolvedValue({ data: { workspace_id: wid, role: "owner" }, error: null });
-  mocks.rpc.mockResolvedValue({ data: null, error: null });
+  mocks.rpc.mockResolvedValue({ data: memberId, error: null });
+  mocks.invoke.mockResolvedValue({ data: { ok: true }, error: null });
 });
 describe("team schemas and actions", () => {
   it("normalizes email and rejects owner grants or malformed identities", () => {
@@ -32,6 +33,8 @@ describe("team schemas and actions", () => {
     expect(mocks.getUser).toHaveBeenCalledOnce();
     expect(mocks.eq).toHaveBeenCalledWith("user_id", "owner");
     expect(mocks.rpc).toHaveBeenCalledWith("invite_team_member", { wid, invite_email: "user@example.com", invite_role: "viewer" });
+    expect(mocks.invoke).toHaveBeenCalledWith("send-team-invitation", { body: { invitationId: memberId } });
+    expect(result.message).toContain("Письмо отправлено");
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/app");
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/app/team");
   });
@@ -69,6 +72,15 @@ describe("team schemas and actions", () => {
     expect(result.status).toBe("error");
     expect(result.message).not.toContain("sensitive");
     expect(mocks.revalidatePath).not.toHaveBeenCalled();
+    expect(mocks.invoke).not.toHaveBeenCalled();
+  });
+  it("keeps the invitation and gives a useful neutral message when delivery fails", async () => {
+    mocks.invoke.mockResolvedValue({ data: { ok: false }, error: { message: "provider secret" } });
+    const result = await inviteTeamMember(initial, form({ email: "user@example.com", role: "viewer" }));
+    expect(result.status).toBe("success");
+    expect(result.message).toContain("письмо сейчас не доставлено");
+    expect(result.message).not.toContain("provider secret");
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/app/team");
   });
 });
 describe("team database security contract (structure, not SQL execution)", () => {
@@ -91,5 +103,23 @@ describe("team database security contract (structure, not SQL execution)", () =>
     expect(sql.indexOf("update public.inquiries set assignee_id=null")).toBeLessThan(sql.indexOf("delete from public.memberships"));
     expect(sql).toContain('"team_member_removed"');
     expect(sql).toContain('"team_member_role"');
+  });
+});
+describe("invitation email security contract", () => {
+  const sql = readFileSync("supabase/migrations/202609080003_invitation_email_payload.sql", "utf8");
+  const edge = readFileSync("supabase/functions/send-team-invitation/index.ts", "utf8");
+  it("limits payload access to the creating owner and a fresh pending invitation", () => {
+    expect(sql).toContain("i.invited_by=auth.uid()");
+    expect(sql).toContain("i.status='pending'");
+    expect(sql).toContain("i.created_at>=now()-interval '10 minutes'");
+    expect(sql).toContain("m.role='owner'");
+    expect(sql).toContain("grant execute on function public.get_invitation_email_payload(uuid) to authenticated");
+  });
+  it("authenticates the caller, derives mail data from the RPC, and keeps secrets server-side", () => {
+    expect(edge).toContain("supabase.auth.getUser(token)");
+    expect(edge).toContain('supabase.rpc("get_invitation_email_payload"');
+    expect(edge).toContain('Deno.env.get("RESEND_API_KEY")');
+    expect(edge).toContain('new URL("/app/team", origin.origin)');
+    expect(edge).not.toContain("service_role");
   });
 });

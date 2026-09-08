@@ -19,7 +19,7 @@ export function TeamPanel({ members, invitations, workspaceId, owner }: { member
   const outgoing = owner ? invitations.filter(invite => invite.workspace_id === workspaceId) : [];
   const incoming = invitations.filter(invite => invite.workspace_id !== workspaceId);
   return <>
-    <section className="panel"><h2>Как присоединиться</h2><p>Один аккаунт работает в одном пространстве. Коллега регистрируется с приглашённой почтой, подтверждает её и открывает <strong>/app/team</strong>, не создавая собственное пространство. Приглашение действует 7 дней. Письмо с приглашением автоматически не отправляется.</p><p>Владелец управляет доступом, менеджер изменяет CRM, наблюдатель только читает. Передача владения в этом этапе не поддерживается.</p></section>
+    <section className="panel"><h2>Как присоединиться</h2><p>Один аккаунт работает в одном пространстве. Коллега получает письмо, регистрируется с приглашённой почтой, подтверждает её и открывает <strong>/app/team</strong>, не создавая собственное пространство. Приглашение действует 7 дней.</p><p>Владелец управляет доступом, менеджер изменяет CRM, наблюдатель только читает. Передача владения в этом этапе не поддерживается.</p></section>
     <section className="panel"><h2>Входящие приглашения</h2>
       {!incoming.length && <p>Действующих входящих приглашений нет.</p>}
       {incoming.map(invite => <article key={invite.id}><h3>{invite.workspace_name}</h3><p>{roleLabels[invite.role]} · {invite.email} · до {new Date(invite.expires_at).toLocaleDateString("ru-RU", { timeZone: "Europe/Moscow" })}</p>
