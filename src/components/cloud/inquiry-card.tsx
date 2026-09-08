@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
+import { InquiryAttachments } from "@/components/cloud/inquiry-attachments";
 import {
   archiveCloudInquiry,
   createCloudInquiryNote,
@@ -37,6 +38,7 @@ export function InquiryCard({ inquiry, clientName, canWrite, notes = [], current
     <details>
       <summary><span><strong>{inquiry.title}</strong><small>{clientName}</small></span><span className={`status ${inquiry.status}`}>{statusLabel[inquiry.status]}</span><b>{money(inquiry.amount_minor)}</b></summary>
       <div className="inquiry-detail">
+        <InquiryAttachments inquiryId={inquiry.id} canWrite={canWrite} archived={archived}/>
         <p>{inquiry.description || "Описание не добавлено."}</p>
         <dl><dt>Источник</dt><dd>{inquiry.source}</dd><dt>Ответственный</dt><dd>{inquiry.assignee_id ? (inquiry.assignee_id === currentUserId ? "Вы" : members.find(member => member.user_id === inquiry.assignee_id)?.email ?? "Участник") : "Не назначен"}</dd><dt>Следующий контакт</dt><dd>{inquiry.next_contact_on ? new Date(`${inquiry.next_contact_on}T00:00:00`).toLocaleDateString("ru-RU") : "—"}</dd><dt>Обновлена</dt><dd>{new Date(inquiry.updated_at).toLocaleString("ru-RU")}</dd></dl>
         {canWrite && !archived && <>

@@ -1,0 +1,13 @@
+diff --git a/artifacts/verification/relay-crm-attachments-v1/BASELINE.config.ts b/artifacts/verification/relay-crm-attachments-v1/MODIFIED_FILE.ts
+index e9ffa30..4b50ede 100644
+--- a/artifacts/verification/relay-crm-attachments-v1/BASELINE.config.ts
++++ b/artifacts/verification/relay-crm-attachments-v1/MODIFIED_FILE.ts
+@@ -1,7 +1,7 @@
+ import type { NextConfig } from "next";
+ 
+ const nextConfig: NextConfig = {
+-  /* config options here */
++  experimental: { serverActions: { bodySizeLimit: "3mb" } },
+ };
+ 
+ export default nextConfig;

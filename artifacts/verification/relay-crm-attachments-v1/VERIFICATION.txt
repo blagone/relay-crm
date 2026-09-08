@@ -1,0 +1,50 @@
+Changed field: next.config.ts experimental.serverActions.bodySizeLimit: default 1 MB -> 3 MiB request budget; file limit stays 2 MiB.
+Feature: inquiry attachments (private Storage + metadata/RPC/RLS + upload/list/download/remove + audit).
+Repository: D:/Data/SystemX/Projects/client-crm
+MODIFIED_FILE: D:/Data/SystemX/Projects/client-crm/artifacts/verification/relay-crm-attachments-v1/MODIFIED_FILE.ts
+DIFF_FILE: D:/Data/SystemX/Projects/client-crm/artifacts/verification/relay-crm-attachments-v1/DIFF_FILE.diff
+VERIFICATION: D:/Data/SystemX/Projects/client-crm/artifacts/verification/relay-crm-attachments-v1/VERIFICATION.txt
+ROLLBACK: D:/Data/SystemX/Projects/client-crm/artifacts/verification/relay-crm-attachments-v1/ROLLBACK.sh
+Original config SHA256: 614bce25b089c3f19b1e17a6346c74b858034040154c6621e7d35303004767cc
+Modified config SHA256: 6c74c61347e87c0dedfb9e14f43395221163958af9a0112a2f6cec1191b874db
+
+BASELINE command: npm test
+Input: original repository tests/unit plus existing legacy artifact fixture matched by Vitest.
+Literal result: Test Files  11 passed (11)
+Literal result: Tests  55 passed (55)
+Exit status: 0
+
+MODIFIED command: npm test
+Input: repository tests/unit, including 13 new inquiry-attachments tests, plus existing legacy artifact fixture.
+Literal result: Test Files  12 passed (12)
+Literal result: Tests  68 passed (68)
+Exit status: 0
+MODIFIED command: npm run typecheck
+Input: current TypeScript source.
+Literal output: > tsc --noEmit
+Result: no diagnostics; exit status 0.
+MODIFIED command: npm run lint
+Input: current source.
+Literal output: > eslint
+Result: no diagnostics; exit status 0.
+MODIFIED command: npm run build
+Input: current Next.js source (existing environment values were not printed or copied).
+Literal result: Compiled successfully in 11.2s
+Literal route result: /app/attachments/[id]
+Exit status: 0
+MODIFIED command: git diff --check
+Literal output: (empty)
+Exit status: 0
+
+ROLLBACK command (PowerShell, repository cwd):
+$dir='artifacts/verification/relay-crm-attachments-v1'; Copy-Item "$dir/MODIFIED_FILE.ts" "$env:TEMP/relay-attachment-config-rollback.ts"; & 'C:\Program Files\Git\bin\bash.exe' -c 'chmod +x artifacts/verification/relay-crm-attachments-v1/ROLLBACK.sh; artifacts/verification/relay-crm-attachments-v1/ROLLBACK.sh "$(cygpath "$TEMP")/relay-attachment-config-rollback.ts"'
+Input: separate copy of MODIFIED_FILE.ts in TEMP, not live next.config.ts.
+Literal output: ROLLBACK PASS: original config restored (default 1 MB Server Action limit)
+Exit status: 0
+Restored status: copy byte hash equals original config hash; default 1 MB setting restored. Live next.config.ts and MODIFIED_FILE.ts remain changed with the modified hash above.
+This rehearsal verifies the config rollback only, not hosted SQL/storage rollback.
+
+Database deployment: apply supabase/migrations/202609080005_inquiry_attachments.sql then deploy app.
+Database rollback: supabase/rollbacks/202609080005_inquiry_attachments.sql disables attachment access without deleting any objects/metadata/audit. Not executed against production.
+Hosted migration/RLS/Storage and authenticated upload/logout/login/download/remove: NOT RUN in this subtask.
+An optional isolated PostgreSQL-WASM runtime install to TEMP failed with npm ECONNRESET; no SQL runtime PASS is claimed.
