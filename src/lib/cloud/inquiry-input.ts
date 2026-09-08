@@ -34,6 +34,11 @@ export const createInquirySchema = inquiryFields;
 export const updateInquirySchema = inquiryFields.omit({ clientId: true }).extend(inquiryIdentity.shape);
 export const inquiryLifecycleSchema = inquiryIdentity;
 export const inquiryTransitionSchema = inquiryIdentity.extend({ status: z.enum(statuses) });
+export const inquiryContactSchema = inquiryIdentity.extend({ nextContactOn: optionalDate.refine(Boolean, "Укажите дату контакта") });
+export const createInquiryNoteSchema = z.object({
+  inquiryId: z.uuid("Некорректный идентификатор заявки"),
+  body: z.string().trim().min(1, "Введите текст заметки").max(4000, "Заметка слишком длинная"),
+});
 
 export function isAllowedInquiryTransition(from: InquiryStatus, to: InquiryStatus) {
   return allowedTransitions[from].includes(to);

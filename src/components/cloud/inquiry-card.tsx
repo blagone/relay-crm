@@ -4,6 +4,8 @@ import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import {
   archiveCloudInquiry,
+  createCloudInquiryNote,
+  rescheduleCloudInquiry,
   restoreCloudInquiry,
   transitionCloudInquiry,
   updateCloudInquiry,
@@ -13,6 +15,7 @@ import { initialInquiryMutationState } from "@/lib/cloud/inquiry-state";
 import type { Database } from "@/lib/supabase/database.types";
 
 type Inquiry = Database["public"]["Tables"]["inquiries"]["Row"];
+type Note = Database["public"]["Tables"]["notes"]["Row"];
 const statusLabel: Record<InquiryStatus, string> = { new: "Новая", contacted: "Связались", proposal: "Предложение", won: "Выиграна", lost: "Проиграна" };
 
 function MutationButton({ children, kind = "primary" }: { children: string; kind?: "primary" | "danger" | "secondary" }) {
@@ -20,18 +23,27 @@ function MutationButton({ children, kind = "primary" }: { children: string; kind
   return <button className={kind} disabled={pending}>{pending ? "Сохраняем…" : children}</button>;
 }
 
-export function InquiryCard({ inquiry, clientName, canWrite }: { inquiry: Inquiry; clientName: string; canWrite: boolean }) {
+export function InquiryCard({ inquiry, clientName, canWrite, notes = [], currentUserId, today }: { inquiry: Inquiry; clientName: string; canWrite: boolean; notes?: Note[]; currentUserId?: string; today: string }) {
   const archived = inquiry.archived_at !== null;
   const [editState, editAction] = useActionState(updateCloudInquiry, initialInquiryMutationState);
   const [transitionState, transitionAction] = useActionState(transitionCloudInquiry, initialInquiryMutationState);
+  const [contactState, contactAction] = useActionState(rescheduleCloudInquiry, initialInquiryMutationState);
+  const [noteState, noteAction] = useActionState(createCloudInquiryNote, initialInquiryMutationState);
   const [lifecycleState, lifecycleAction] = useActionState(archived ? restoreCloudInquiry : archiveCloudInquiry, initialInquiryMutationState);
-  return <article className={`cloud-inquiry-card${archived ? " archived" : ""}`}>
+  const tomorrow = addDays(today, 1);
+  const nextWeek = addDays(today, 7);
+  return <article id={`inquiry-${inquiry.id}`} className={`cloud-inquiry-card${archived ? " archived" : ""}`}>
     <details>
       <summary><span><strong>{inquiry.title}</strong><small>{clientName}</small></span><span className={`status ${inquiry.status}`}>{statusLabel[inquiry.status]}</span><b>{money(inquiry.amount_minor)}</b></summary>
       <div className="inquiry-detail">
         <p>{inquiry.description || "Описание не добавлено."}</p>
         <dl><dt>Источник</dt><dd>{inquiry.source}</dd><dt>Следующий контакт</dt><dd>{inquiry.next_contact_on ? new Date(`${inquiry.next_contact_on}T00:00:00`).toLocaleDateString("ru-RU") : "—"}</dd><dt>Обновлена</dt><dd>{new Date(inquiry.updated_at).toLocaleString("ru-RU")}</dd></dl>
         {canWrite && !archived && <>
+          <div className="inquiry-fast-actions" aria-label="Быстрые действия">
+            {inquiry.status === "new" && <form action={transitionAction}><input type="hidden" name="inquiryId" value={inquiry.id}/><input type="hidden" name="version" value={inquiry.version}/><input type="hidden" name="status" value="contacted"/><MutationButton kind="secondary">Связались</MutationButton></form>}
+            {[{ label: "Контакт завтра", date: tomorrow }, { label: "Перенести на 7 дней", date: nextWeek }].map(item => <form action={contactAction} key={item.date}><input type="hidden" name="inquiryId" value={inquiry.id}/><input type="hidden" name="version" value={inquiry.version}/><input type="hidden" name="nextContactOn" value={item.date}/><MutationButton kind="secondary">{item.label}</MutationButton></form>)}
+          </div>
+          {contactState.message && <p className={contactState.status === "success" ? "form-success" : "form-error"} role="status">{contactState.message}</p>}
           <form action={editAction} className="cloud-inquiry-edit">
             <input type="hidden" name="inquiryId" value={inquiry.id}/><input type="hidden" name="version" value={inquiry.version}/>
             <label>Название<input name="title" required minLength={1} maxLength={160} defaultValue={inquiry.title}/></label>
@@ -46,9 +58,22 @@ export function InquiryCard({ inquiry, clientName, canWrite }: { inquiry: Inquir
           </form>
           <div className="inquiry-transitions"><span>Следующий статус</span>{allowedTransitions[inquiry.status].map(status => <form action={transitionAction} key={status}><input type="hidden" name="inquiryId" value={inquiry.id}/><input type="hidden" name="version" value={inquiry.version}/><input type="hidden" name="status" value={status}/><MutationButton kind="secondary">{statusLabel[status]}</MutationButton></form>)}</div>
           {transitionState.message && <p className={transitionState.status === "success" ? "form-success" : "form-error"} role="status">{transitionState.message}</p>}
+          <section className="cloud-notes">
+            <h3>Заметки · {notes.length}</h3>
+            {notes.map(note => <article key={note.id}><p>{note.body}</p><small>{note.author_id === currentUserId ? "Вы" : `Участник ${note.author_id.slice(0, 8)}`} · {new Date(note.created_at).toLocaleString("ru-RU")}</small></article>)}
+            {!notes.length && <p>Заметок пока нет.</p>}
+            <form action={noteAction}><input type="hidden" name="inquiryId" value={inquiry.id}/><label>Новая заметка<textarea name="body" required minLength={1} maxLength={4000} placeholder="Итоги контакта и следующий шаг"/></label>{noteState.message && <p className={noteState.status === "success" ? "form-success" : "form-error"} role="status">{noteState.message}</p>}<MutationButton>Добавить заметку</MutationButton></form>
+          </section>
         </>}
+        {(archived || !canWrite) && notes.length > 0 && <section className="cloud-notes"><h3>Заметки · {notes.length}</h3>{notes.map(note => <article key={note.id}><p>{note.body}</p><small>{note.author_id === currentUserId ? "Вы" : `Участник ${note.author_id.slice(0, 8)}`} · {new Date(note.created_at).toLocaleString("ru-RU")}</small></article>)}</section>}
         {canWrite && <form action={lifecycleAction} className="inquiry-lifecycle-form"><input type="hidden" name="inquiryId" value={inquiry.id}/><input type="hidden" name="version" value={inquiry.version}/>{lifecycleState.message && <p className={lifecycleState.status === "success" ? "form-success" : "form-error"} role="status">{lifecycleState.message}</p>}<MutationButton kind={archived ? "secondary" : "danger"}>{archived ? "Восстановить" : "Архивировать"}</MutationButton></form>}
       </div>
     </details>
   </article>;
+}
+
+function addDays(date: string, days: number) {
+  const value = new Date(`${date}T00:00:00Z`);
+  value.setUTCDate(value.getUTCDate() + days);
+  return value.toISOString().slice(0, 10);
 }

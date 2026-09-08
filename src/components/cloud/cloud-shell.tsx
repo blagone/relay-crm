@@ -1,8 +1,9 @@
 import { bootstrapWorkspace, logout } from "@/app/actions/auth";
 import { ClientCard } from "@/components/cloud/client-card";
 import { ClientForm } from "@/components/cloud/client-form";
-import { InquiryCard } from "@/components/cloud/inquiry-card";
 import { InquiryForm } from "@/components/cloud/inquiry-form";
+import { InquiryWorkspace } from "@/components/cloud/inquiry-workspace";
+import { ManagerDashboard } from "@/components/cloud/manager-dashboard";
 import { money } from "@/lib/domain";
 import type { CloudWorkspaceDTO } from "@/lib/server/queries";
 
@@ -15,18 +16,18 @@ export function CloudShell({ data, email }: { data: CloudWorkspaceDTO; email?: s
   const pipeline = active.reduce((sum, inquiry) => sum + inquiry.amount_minor, 0);
   const won = data.inquiries.filter(inquiry => inquiry.status === "won").reduce((sum, inquiry) => sum + inquiry.amount_minor, 0);
   const canWrite = data.role !== "viewer";
-  const clientNames = new Map([...data.clients, ...data.archivedClients].map(client => [client.id, client.name]));
+  const today = moscowDate();
   return <div className="cloud-shell">
-    <aside><div className="brand"><span>R</span><strong>Relay</strong></div><nav><a href="#overview">Обзор</a><a href="#inquiries">Заявки</a><a href="#clients">Клиенты</a></nav><form action={logout}><button>Выйти</button></form></aside>
+    <aside><div className="brand"><span>R</span><strong>Relay</strong></div><nav><a href="#today">Сегодня</a><a href="#overview">Обзор</a><a href="#inquiries">Заявки</a><a href="#clients">Клиенты</a><a href="#activity">История</a></nav><form action={logout}><button>Выйти</button></form></aside>
     <main>
       <div className="cloud-head"><div><p className="eyebrow">{data.role.toUpperCase()}</p><h1>{data.workspace.name}</h1><span>{email}</span></div><span className="cloud-badge">Supabase cloud</span></div>
       <section id="overview" className="metrics"><article><span>В работе</span><strong>{active.length}</strong><small>активные заявки</small></article><article><span>Воронка</span><strong>{money(pipeline)}</strong><small>без архива</small></article><article><span>Выиграно</span><strong>{money(won)}</strong><small>без архива</small></article><article><span>Клиенты</span><strong>{data.clients.length}</strong><small>активные</small></article></section>
+      <ManagerDashboard data={data} today={today}/>
       <section id="inquiries" className="panel cloud-inquiries">
         <div className="panel-head"><div><p className="eyebrow">ОБЛАЧНЫЙ CRUD</p><h2>Заявки</h2></div></div>
         {canWrite && data.clients.length > 0 && <InquiryForm clients={data.clients}/>}
         {canWrite && data.clients.length === 0 && <div className="empty compact"><p>Сначала добавьте активного клиента.</p></div>}
-        {data.inquiries.length ? <div className="cloud-inquiry-list">{data.inquiries.map(inquiry => <InquiryCard key={inquiry.id} inquiry={inquiry} clientName={clientNames.get(inquiry.client_id) ?? "Клиент"} canWrite={canWrite}/>)}</div> : <div className="empty"><strong>Заявок пока нет</strong><p>Добавьте первую заявку и проведите её по воронке.</p></div>}
-        {data.archivedInquiries.length > 0 && <details className="archive-section"><summary>Архив заявок · {data.archivedInquiries.length}</summary><div className="cloud-inquiry-list">{data.archivedInquiries.map(inquiry => <InquiryCard key={inquiry.id} inquiry={inquiry} clientName={clientNames.get(inquiry.client_id) ?? "Клиент"} canWrite={canWrite}/>)}</div></details>}
+        <InquiryWorkspace inquiries={data.inquiries} archivedInquiries={data.archivedInquiries} clients={[...data.clients, ...data.archivedClients]} notes={data.notes} canWrite={canWrite} currentUserId={data.currentUserId} today={today}/>
       </section>
       <section id="clients" className="panel cloud-clients">
         <div className="panel-head"><div><p className="eyebrow">ОБЛАЧНЫЙ CRUD</p><h2>Клиенты</h2></div></div>
@@ -36,4 +37,10 @@ export function CloudShell({ data, email }: { data: CloudWorkspaceDTO; email?: s
       </section>
     </main>
   </div>;
+}
+
+function moscowDate() {
+  const parts = new Intl.DateTimeFormat("en", { timeZone: "Europe/Moscow", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date());
+  const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
+  return `${values.year}-${values.month}-${values.day}`;
 }
