@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { bootstrapWorkspace, logout } from "@/app/actions/auth";
 import { ClientCard } from "@/components/cloud/client-card";
 import { ClientForm } from "@/components/cloud/client-form";
@@ -8,7 +9,7 @@ import { money } from "@/lib/domain";
 import type { CloudWorkspaceDTO } from "@/lib/server/queries";
 
 export function WorkspaceSetup({ email, error }: { email?: string; error?: string }) {
-  return <main className="setup"><div className="logo-mark">R</div><p className="eyebrow">ПЕРВЫЙ ЗАПУСК</p><h1>Создайте рабочее пространство</h1><p>Аккаунт {email ?? "подтверждён"}. Название можно будет изменить владельцу позже.</p>{error && <p className="form-error">Не удалось создать пространство. Возможно, оно уже существует.</p>}<form action={bootstrapWorkspace}><label>Название<input name="name" required minLength={1} maxLength={80} placeholder="Например, Студия Андрея"/></label><button className="primary">Создать пространство</button></form><form action={logout}><button className="text-link">Выйти</button></form></main>;
+  return <main className="setup"><div className="logo-mark">R</div><p className="eyebrow">ПЕРВЫЙ ЗАПУСК</p><h1>Создайте рабочее пространство</h1><Link className="text-link" href="/app/team">Вас пригласили? Принять приглашение →</Link><p>Аккаунт {email ?? "подтверждён"}. Название можно будет изменить владельцу позже.</p>{error && <p className="form-error">Не удалось создать пространство. Возможно, оно уже существует.</p>}<form action={bootstrapWorkspace}><label>Название<input name="name" required minLength={1} maxLength={80} placeholder="Например, Студия Андрея"/></label><button className="primary">Создать пространство</button></form><form action={logout}><button className="text-link">Выйти</button></form></main>;
 }
 
 export function CloudShell({ data, email }: { data: CloudWorkspaceDTO; email?: string }) {
@@ -18,7 +19,7 @@ export function CloudShell({ data, email }: { data: CloudWorkspaceDTO; email?: s
   const canWrite = data.role !== "viewer";
   const today = moscowDate();
   return <div className="cloud-shell">
-    <aside><div className="brand"><span>R</span><strong>Relay</strong></div><nav><a href="#today">Сегодня</a><a href="#overview">Обзор</a><a href="#inquiries">Заявки</a><a href="#clients">Клиенты</a><a href="#activity">История</a></nav><form action={logout}><button>Выйти</button></form></aside>
+    <aside><div className="brand"><span>R</span><strong>Relay</strong></div><nav><a href="#today">Сегодня</a><a href="#overview">Обзор</a><a href="#inquiries">Заявки</a><a href="#clients">Клиенты</a><a href="#activity">История</a><Link href="/app/team">Команда</Link></nav><form action={logout}><button>Выйти</button></form></aside>
     <main>
       <div className="cloud-head"><div><p className="eyebrow">{data.role.toUpperCase()}</p><h1>{data.workspace.name}</h1><span>{email}</span></div><span className="cloud-badge">Supabase cloud</span></div>
       <section id="overview" className="metrics"><article><span>В работе</span><strong>{active.length}</strong><small>активные заявки</small></article><article><span>Воронка</span><strong>{money(pipeline)}</strong><small>без архива</small></article><article><span>Выиграно</span><strong>{money(won)}</strong><small>без архива</small></article><article><span>Клиенты</span><strong>{data.clients.length}</strong><small>активные</small></article></section>
