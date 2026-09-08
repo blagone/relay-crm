@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { InquiryCard } from "@/components/cloud/inquiry-card";
+import type { InquiryStatus } from "@/lib/domain";
 import type { Database } from "@/lib/supabase/database.types";
 import type { WorkspaceMember } from "@/lib/server/queries";
 
@@ -9,6 +10,14 @@ type Tables = Database["public"]["Tables"];
 type Inquiry = Tables["inquiries"]["Row"];
 type Client = Tables["clients"]["Row"];
 type Note = Tables["notes"]["Row"];
+
+const pipeline: { status: InquiryStatus; label: string; hint: string }[] = [
+  { status: "new", label: "Новые", hint: "Нужно начать работу" },
+  { status: "contacted", label: "Связались", hint: "Контакт установлен" },
+  { status: "proposal", label: "Предложение", hint: "Обсуждаем условия" },
+  { status: "won", label: "Выиграно", hint: "Сделка состоялась" },
+  { status: "lost", label: "Проиграно", hint: "Сделка закрыта" },
+];
 
 export function InquiryWorkspace({ inquiries, archivedInquiries, clients, notes, canWrite, currentUserId, today, members }: {
   inquiries: Inquiry[]; archivedInquiries: Inquiry[]; clients: Client[]; notes: Note[];
@@ -34,6 +43,12 @@ export function InquiryWorkspace({ inquiries, archivedInquiries, clients, notes,
       (!contactDate || inquiry.next_contact_on === contactDate) && (!assignee || assignee === "me" && inquiry.assignee_id === currentUserId || assignee === "unassigned" && !inquiry.assignee_id || inquiry.assignee_id === assignee);
   }), [inquiries, query, status, source, clientId, contactDate, assignee, currentUserId, clientNames]);
   const filterActive = Boolean(query || status || source || clientId || contactDate || assignee);
+  const inquiriesByStatus = useMemo(() => {
+    const grouped: Record<InquiryStatus, Inquiry[]> = { new: [], contacted: [], proposal: [], won: [], lost: [] };
+    for (const inquiry of filtered) grouped[inquiry.status].push(inquiry);
+    return grouped;
+  }, [filtered]);
+  const visiblePipeline = status ? pipeline.filter(column => column.status === status) : pipeline;
   const reset = () => { setQuery(""); setStatus(""); setSource(""); setClientId(""); setContactDate(""); setAssignee(""); };
 
   return <>
@@ -47,7 +62,19 @@ export function InquiryWorkspace({ inquiries, archivedInquiries, clients, notes,
       {filterActive && <button className="text-link" type="button" onClick={reset}>Сбросить</button>}
     </div>
     <p className="filter-result">Показано: {filtered.length} из {inquiries.length}</p>
-    {filtered.length ? <div className="cloud-inquiry-list">{filtered.map(inquiry => <InquiryCard key={inquiry.id} inquiry={inquiry} clientName={clientNames.get(inquiry.client_id) ?? "Клиент"} canWrite={canWrite} notes={notesByInquiry.get(inquiry.id)} currentUserId={currentUserId} today={today} members={members}/>)}</div> : <div className="empty compact"><p>{filterActive ? "По этим фильтрам заявок нет." : "Добавьте первую заявку и проведите её по воронке."}</p></div>}
+    {filtered.length ? <div className={`inquiry-kanban${visiblePipeline.length === 1 ? " single-column" : ""}`} aria-label="Воронка заявок">
+      {visiblePipeline.map(column => <section className={`kanban-column ${column.status}`} key={column.status} aria-labelledby={`kanban-${column.status}`}>
+        <header className="kanban-column-head">
+          <span className="kanban-status-dot" aria-hidden="true"/>
+          <span><strong id={`kanban-${column.status}`}>{column.label}</strong><small>{column.hint}</small></span>
+          <b title={`${inquiriesByStatus[column.status].length} заявок`}>{inquiriesByStatus[column.status].length}</b>
+        </header>
+        <div className="kanban-stack">
+          {inquiriesByStatus[column.status].map(inquiry => <InquiryCard key={inquiry.id} inquiry={inquiry} clientName={clientNames.get(inquiry.client_id) ?? "Клиент"} canWrite={canWrite} notes={notesByInquiry.get(inquiry.id)} currentUserId={currentUserId} today={today} members={members}/>)}
+          {!inquiriesByStatus[column.status].length && <div className="kanban-empty"><span aria-hidden="true">＋</span><p>Здесь пока пусто</p></div>}
+        </div>
+      </section>)}
+    </div> : <div className="empty compact"><p>{filterActive ? "По этим фильтрам заявок нет." : "Добавьте первую заявку и проведите её по воронке."}</p></div>}
     {archivedInquiries.length > 0 && <details className="archive-section"><summary>Архив заявок · {archivedInquiries.length}</summary><div className="cloud-inquiry-list">{archivedInquiries.map(inquiry => <InquiryCard key={inquiry.id} inquiry={inquiry} clientName={clientNames.get(inquiry.client_id) ?? "Клиент"} canWrite={canWrite} notes={notesByInquiry.get(inquiry.id)} currentUserId={currentUserId} today={today} members={members}/>)}</div></details>}
   </>;
 }
