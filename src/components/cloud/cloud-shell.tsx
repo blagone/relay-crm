@@ -37,6 +37,13 @@ export function CloudShell({ data, email }: { data: CloudWorkspaceDTO; email?: s
         {data.archivedClients.length > 0 && <details className="archive-section"><summary>Архив · {data.archivedClients.length}</summary><div className="cloud-client-list">{data.archivedClients.map(client => <ClientCard key={client.id} client={client} canWrite={canWrite}/>)}</div></details>}
       </section>
     </main>
+    <nav className="cloud-mobile-nav" aria-label="Основная навигация">
+      <a href="#today"><span aria-hidden="true">◎</span>Сегодня</a>
+      <a href="#inquiries"><span aria-hidden="true">◇</span>Заявки</a>
+      <a href="#clients"><span aria-hidden="true">○</span>Клиенты</a>
+      <Link href="/app/calendar"><span aria-hidden="true">□</span>Календарь</Link>
+      <Link href="/app/team"><span aria-hidden="true">☆</span>Команда</Link>
+    </nav>
   </div>;
 }
 
