@@ -1,0 +1,45 @@
+BRANCH/FIELD
+main / client CSV data portability (active clients only)
+
+ORIGINAL HASH
+src/components/cloud/cloud-shell.tsx at HEAD: 0e4101d74e66242795ca593f388c5adfc8cd8bd2
+MODIFIED_FILE.tsx: ea7564f7dc68c8690c42f79d0e5b168fbc8aa4f8
+
+ARTIFACTS
+MODIFIED_FILE: D:/Data/SystemX/Projects/client-crm/artifacts/verification/client-csv-v1/MODIFIED_FILE.tsx
+DIFF_FILE: D:/Data/SystemX/Projects/client-crm/artifacts/verification/client-csv-v1/DIFF_FILE.patch
+VERIFICATION.txt: D:/Data/SystemX/Projects/client-crm/artifacts/verification/client-csv-v1/VERIFICATION.txt
+ROLLBACK.sh: D:/Data/SystemX/Projects/client-crm/artifacts/verification/client-csv-v1/ROLLBACK.sh
+
+BASELINE
+Command: npm test
+Input: repository at HEAD plus pre-existing tracked/untracked state, before CSV changes
+Literal result:
+Test Files  14 passed (14)
+Tests  75 passed (75)
+Exit status: 0
+
+MODIFIED
+Command: npm test; npm run typecheck; npm run lint; npm run build
+Input: working tree with client CSV import/export changes
+Literal result:
+Test Files  15 passed (15)
+Tests  79 passed (79)
+tsc --noEmit
+eslint
+Compiled successfully
+Route: /app/data
+Route: /app/data/clients.csv
+Exit status: 0 for every command
+
+ROLLBACK
+Command: "C:/Program Files/Git/bin/bash.exe" artifacts/verification/client-csv-v1/ROLLBACK.sh . artifacts/verification/client-csv-v1/ROLLBACK_COPY.tsx
+Input: modified branch plus a separate rollback target copy
+Literal output/result:
+ROLLBACK_PASS: baseline navigation restored
+RESTORED_HASH=0e4101d74e66242795ca593f388c5adfc8cd8bd2
+RESTORED_BEHAVIOR=baseline navigation restored
+Exit status: 0
+
+RESTORED STATUS
+The separate copy no longer contains href="/app/data" and exactly matches the original HEAD blob hash. The working source remains modified.

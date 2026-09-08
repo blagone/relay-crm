@@ -25,6 +25,7 @@ Relay — компактная русскоязычная CRM для фрила�
 - создание первого workspace через ограниченный SQL RPC;
 - защищённый shell с server-side typed reads dashboard/clients/inquiries;
 - logout через Server Action.
+- импорт до 500 активных клиентов из валидируемого UTF-8 CSV одним атомарным insert и экспорт активных клиентов в UTF-8 BOM CSV с нейтрализацией spreadsheet-formula injection.
 
 Приложение использует только browser-safe Supabase URL и publishable key. Административный ключ не требуется.
 
