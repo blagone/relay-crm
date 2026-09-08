@@ -23,6 +23,7 @@ const inquiryFields = z.object({
   source: z.enum(inquirySources, "Выберите источник"),
   amountMinor,
   nextContactOn: optionalDate,
+  assigneeId: z.union([z.literal(""), z.uuid("Выберите участника команды")]).default("").transform((value) => value || null),
 });
 
 const inquiryIdentity = z.object({

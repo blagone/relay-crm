@@ -8,10 +8,12 @@ const entityLabels: Record<string, string> = { client: "клиента", inquiry
 
 export function ManagerDashboard({ data, today }: { data: CloudWorkspaceDTO; today: string }) {
   const open = data.inquiries.filter(item => !["won", "lost"].includes(item.status));
-  const overdue = open.filter(item => item.next_contact_on && item.next_contact_on < today)
+  const assignedToMe = open.filter(item => item.assignee_id === data.currentUserId);
+  const unassigned = open.filter(item => !item.assignee_id);
+  const overdue = assignedToMe.filter(item => item.next_contact_on && item.next_contact_on < today)
     .sort((a, b) => (a.next_contact_on ?? "").localeCompare(b.next_contact_on ?? ""));
   const upcomingLimit = addDays(today, 7);
-  const upcoming = open.filter(item => item.next_contact_on && item.next_contact_on >= today && item.next_contact_on <= upcomingLimit)
+  const upcoming = assignedToMe.filter(item => item.next_contact_on && item.next_contact_on >= today && item.next_contact_on <= upcomingLimit)
     .sort((a, b) => (a.next_contact_on ?? "").localeCompare(b.next_contact_on ?? ""));
   const inquiryNames = new Map([...data.inquiries, ...data.archivedInquiries].map(item => [item.id, item.title]));
   const clientNames = new Map([...data.clients, ...data.archivedClients].map(item => [item.id, item.name]));
@@ -21,8 +23,9 @@ export function ManagerDashboard({ data, today }: { data: CloudWorkspaceDTO; tod
     <section id="today" className="manager-today">
       <div className="panel-head"><div><p className="eyebrow">РАБОЧИЙ ДЕНЬ</p><h2>Сегодня</h2></div><span>{formatDate(today)}</span></div>
       <div className="attention-columns">
-        <article className={overdue.length ? "attention-list overdue" : "attention-list"}><h3>Просрочено · {overdue.length}</h3>{overdue.map(item => <a href={`#inquiry-${item.id}`} key={item.id}><strong>{item.title}</strong><span>{formatDate(item.next_contact_on!)}</span></a>)}{!overdue.length && <p>Просроченных контактов нет.</p>}</article>
-        <article className="attention-list"><h3>Ближайшие 7 дней · {upcoming.length}</h3>{upcoming.map(item => <a href={`#inquiry-${item.id}`} key={item.id}><strong>{item.title}</strong><span>{item.next_contact_on === today ? "Сегодня" : formatDate(item.next_contact_on!)}</span></a>)}{!upcoming.length && <p>Контактов на ближайшие дни нет.</p>}</article>
+        <article className={overdue.length ? "attention-list overdue" : "attention-list"}><h3>Мои просроченные · {overdue.length}</h3>{overdue.map(item => <a href={`#inquiry-${item.id}`} key={item.id}><strong>{item.title}</strong><span>{formatDate(item.next_contact_on!)}</span></a>)}{!overdue.length && <p>Просроченных контактов нет.</p>}</article>
+        <article className="attention-list"><h3>Мои ближайшие 7 дней · {upcoming.length}</h3>{upcoming.map(item => <a href={`#inquiry-${item.id}`} key={item.id}><strong>{item.title}</strong><span>{item.next_contact_on === today ? "Сегодня" : formatDate(item.next_contact_on!)}</span></a>)}{!upcoming.length && <p>Контактов на ближайшие дни нет.</p>}</article>
+        <article className={unassigned.length ? "attention-list overdue" : "attention-list"}><h3>Без ответственного · {unassigned.length}</h3>{unassigned.slice(0, 10).map(item => <a href={`#inquiry-${item.id}`} key={item.id}><strong>{item.title}</strong><span>Назначить</span></a>)}{!unassigned.length && <p>Все заявки назначены.</p>}</article>
       </div>
     </section>
     <section id="activity" className="panel cloud-activity">

@@ -26,9 +26,9 @@ export function CloudShell({ data, email }: { data: CloudWorkspaceDTO; email?: s
       <ManagerDashboard data={data} today={today}/>
       <section id="inquiries" className="panel cloud-inquiries">
         <div className="panel-head"><div><p className="eyebrow">ОБЛАЧНЫЙ CRUD</p><h2>Заявки</h2></div></div>
-        {canWrite && data.clients.length > 0 && <InquiryForm clients={data.clients}/>}
+        {canWrite && data.clients.length > 0 && <InquiryForm clients={data.clients} members={data.members} currentUserId={data.currentUserId}/>}
         {canWrite && data.clients.length === 0 && <div className="empty compact"><p>Сначала добавьте активного клиента.</p></div>}
-        <InquiryWorkspace inquiries={data.inquiries} archivedInquiries={data.archivedInquiries} clients={[...data.clients, ...data.archivedClients]} notes={data.notes} canWrite={canWrite} currentUserId={data.currentUserId} today={today}/>
+        <InquiryWorkspace inquiries={data.inquiries} archivedInquiries={data.archivedInquiries} clients={[...data.clients, ...data.archivedClients]} notes={data.notes} canWrite={canWrite} currentUserId={data.currentUserId} today={today} members={data.members}/>
       </section>
       <section id="clients" className="panel cloud-clients">
         <div className="panel-head"><div><p className="eyebrow">ОБЛАЧНЫЙ CRUD</p><h2>Клиенты</h2></div></div>

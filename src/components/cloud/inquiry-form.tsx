@@ -5,6 +5,7 @@ import { useFormStatus } from "react-dom";
 import { createCloudInquiry } from "@/app/actions/inquiries";
 import { initialInquiryMutationState } from "@/lib/cloud/inquiry-state";
 import type { Database } from "@/lib/supabase/database.types";
+import type { WorkspaceMember } from "@/lib/server/queries";
 
 type Client = Database["public"]["Tables"]["clients"]["Row"];
 
@@ -13,7 +14,7 @@ function SubmitButton() {
   return <button className="primary" disabled={pending}>{pending ? "Сохраняем…" : "Добавить заявку"}</button>;
 }
 
-export function InquiryForm({ clients }: { clients: Client[] }) {
+export function InquiryForm({ clients, members, currentUserId }: { clients: Client[]; members: WorkspaceMember[]; currentUserId: string }) {
   const [state, action] = useActionState(createCloudInquiry, initialInquiryMutationState);
   const formRef = useRef<HTMLFormElement>(null);
   useEffect(() => { if (state.status === "success") formRef.current?.reset(); }, [state]);
@@ -28,6 +29,7 @@ export function InquiryForm({ clients }: { clients: Client[] }) {
       <label>Сумма, ₽<input name="amount" inputMode="decimal" required defaultValue="0" pattern="[0-9]+([.,][0-9]{1,2})?"/></label>
       <label>Следующий контакт<input name="nextContactOn" type="date"/></label>
     </div>
+    <label>Ответственный<select name="assigneeId" defaultValue={currentUserId}><option value="">Не назначен</option>{members.map(member => <option value={member.user_id} key={member.user_id}>{member.user_id === currentUserId ? "Я" : member.email} · {member.role}</option>)}</select></label>
     {state.message && <p className={state.status === "success" ? "form-success" : "form-error"} role="status">{state.message}</p>}
     <SubmitButton/>
   </form>;

@@ -13,6 +13,7 @@ import {
 import { allowedTransitions, money, type InquiryStatus } from "@/lib/domain";
 import { initialInquiryMutationState } from "@/lib/cloud/inquiry-state";
 import type { Database } from "@/lib/supabase/database.types";
+import type { WorkspaceMember } from "@/lib/server/queries";
 
 type Inquiry = Database["public"]["Tables"]["inquiries"]["Row"];
 type Note = Database["public"]["Tables"]["notes"]["Row"];
@@ -23,7 +24,7 @@ function MutationButton({ children, kind = "primary" }: { children: string; kind
   return <button className={kind} disabled={pending}>{pending ? "Сохраняем…" : children}</button>;
 }
 
-export function InquiryCard({ inquiry, clientName, canWrite, notes = [], currentUserId, today }: { inquiry: Inquiry; clientName: string; canWrite: boolean; notes?: Note[]; currentUserId?: string; today: string }) {
+export function InquiryCard({ inquiry, clientName, canWrite, notes = [], currentUserId, today, members }: { inquiry: Inquiry; clientName: string; canWrite: boolean; notes?: Note[]; currentUserId: string; today: string; members: WorkspaceMember[] }) {
   const archived = inquiry.archived_at !== null;
   const [editState, editAction] = useActionState(updateCloudInquiry, initialInquiryMutationState);
   const [transitionState, transitionAction] = useActionState(transitionCloudInquiry, initialInquiryMutationState);
@@ -37,7 +38,7 @@ export function InquiryCard({ inquiry, clientName, canWrite, notes = [], current
       <summary><span><strong>{inquiry.title}</strong><small>{clientName}</small></span><span className={`status ${inquiry.status}`}>{statusLabel[inquiry.status]}</span><b>{money(inquiry.amount_minor)}</b></summary>
       <div className="inquiry-detail">
         <p>{inquiry.description || "Описание не добавлено."}</p>
-        <dl><dt>Источник</dt><dd>{inquiry.source}</dd><dt>Следующий контакт</dt><dd>{inquiry.next_contact_on ? new Date(`${inquiry.next_contact_on}T00:00:00`).toLocaleDateString("ru-RU") : "—"}</dd><dt>Обновлена</dt><dd>{new Date(inquiry.updated_at).toLocaleString("ru-RU")}</dd></dl>
+        <dl><dt>Источник</dt><dd>{inquiry.source}</dd><dt>Ответственный</dt><dd>{inquiry.assignee_id ? (inquiry.assignee_id === currentUserId ? "Вы" : members.find(member => member.user_id === inquiry.assignee_id)?.email ?? "Участник") : "Не назначен"}</dd><dt>Следующий контакт</dt><dd>{inquiry.next_contact_on ? new Date(`${inquiry.next_contact_on}T00:00:00`).toLocaleDateString("ru-RU") : "—"}</dd><dt>Обновлена</dt><dd>{new Date(inquiry.updated_at).toLocaleString("ru-RU")}</dd></dl>
         {canWrite && !archived && <>
           <div className="inquiry-fast-actions" aria-label="Быстрые действия">
             {inquiry.status === "new" && <form action={transitionAction}><input type="hidden" name="inquiryId" value={inquiry.id}/><input type="hidden" name="version" value={inquiry.version}/><input type="hidden" name="status" value="contacted"/><MutationButton kind="secondary">Связались</MutationButton></form>}
@@ -53,6 +54,7 @@ export function InquiryCard({ inquiry, clientName, canWrite, notes = [], current
               <label>Сумма, ₽<input name="amount" inputMode="decimal" required defaultValue={(inquiry.amount_minor / 100).toFixed(2)} pattern="[0-9]+([.,][0-9]{1,2})?"/></label>
               <label>Следующий контакт<input name="nextContactOn" type="date" defaultValue={inquiry.next_contact_on ?? ""}/></label>
             </div>
+            <label>Ответственный<select name="assigneeId" defaultValue={inquiry.assignee_id ?? ""}><option value="">Не назначен</option>{members.map(member => <option value={member.user_id} key={member.user_id}>{member.user_id === currentUserId ? "Я" : member.email} · {member.role}</option>)}</select></label>
             {editState.message && <p className={editState.status === "success" ? "form-success" : "form-error"} role="status">{editState.message}</p>}
             <MutationButton>Сохранить изменения</MutationButton>
           </form>

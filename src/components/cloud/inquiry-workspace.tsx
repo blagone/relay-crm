@@ -3,21 +3,23 @@
 import { useMemo, useState } from "react";
 import { InquiryCard } from "@/components/cloud/inquiry-card";
 import type { Database } from "@/lib/supabase/database.types";
+import type { WorkspaceMember } from "@/lib/server/queries";
 
 type Tables = Database["public"]["Tables"];
 type Inquiry = Tables["inquiries"]["Row"];
 type Client = Tables["clients"]["Row"];
 type Note = Tables["notes"]["Row"];
 
-export function InquiryWorkspace({ inquiries, archivedInquiries, clients, notes, canWrite, currentUserId, today }: {
+export function InquiryWorkspace({ inquiries, archivedInquiries, clients, notes, canWrite, currentUserId, today, members }: {
   inquiries: Inquiry[]; archivedInquiries: Inquiry[]; clients: Client[]; notes: Note[];
-  canWrite: boolean; currentUserId: string; today: string;
+  canWrite: boolean; currentUserId: string; today: string; members: WorkspaceMember[];
 }) {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("");
   const [source, setSource] = useState("");
   const [clientId, setClientId] = useState("");
   const [contactDate, setContactDate] = useState("");
+  const [assignee, setAssignee] = useState("");
   const clientNames = useMemo(() => new Map(clients.map(client => [client.id, client.name])), [clients]);
   const notesByInquiry = useMemo(() => {
     const grouped = new Map<string, Note[]>();
@@ -29,10 +31,10 @@ export function InquiryWorkspace({ inquiries, archivedInquiries, clients, notes,
     const haystack = `${inquiry.title} ${inquiry.description} ${clientNames.get(inquiry.client_id) ?? ""}`.toLocaleLowerCase("ru");
     return (!needle || haystack.includes(needle)) && (!status || inquiry.status === status) &&
       (!source || inquiry.source === source) && (!clientId || inquiry.client_id === clientId) &&
-      (!contactDate || inquiry.next_contact_on === contactDate);
-  }), [inquiries, query, status, source, clientId, contactDate, clientNames]);
-  const filterActive = Boolean(query || status || source || clientId || contactDate);
-  const reset = () => { setQuery(""); setStatus(""); setSource(""); setClientId(""); setContactDate(""); };
+      (!contactDate || inquiry.next_contact_on === contactDate) && (!assignee || assignee === "me" && inquiry.assignee_id === currentUserId || assignee === "unassigned" && !inquiry.assignee_id || inquiry.assignee_id === assignee);
+  }), [inquiries, query, status, source, clientId, contactDate, assignee, currentUserId, clientNames]);
+  const filterActive = Boolean(query || status || source || clientId || contactDate || assignee);
+  const reset = () => { setQuery(""); setStatus(""); setSource(""); setClientId(""); setContactDate(""); setAssignee(""); };
 
   return <>
     <div className="cloud-filters" aria-label="Фильтры заявок">
@@ -41,10 +43,11 @@ export function InquiryWorkspace({ inquiries, archivedInquiries, clients, notes,
       <label>Источник<select value={source} onChange={event => setSource(event.target.value)}><option value="">Все</option><option value="website">Сайт</option><option value="telegram">Telegram</option><option value="referral">Рекомендация</option><option value="other">Другое</option></select></label>
       <label>Клиент<select value={clientId} onChange={event => setClientId(event.target.value)}><option value="">Все</option>{clients.filter(client => !client.archived_at).map(client => <option value={client.id} key={client.id}>{client.name}</option>)}</select></label>
       <label>Дата контакта<input type="date" value={contactDate} onChange={event => setContactDate(event.target.value)}/></label>
+      <label>Ответственный<select value={assignee} onChange={event => setAssignee(event.target.value)}><option value="">Все</option><option value="me">Назначены мне</option><option value="unassigned">Не назначены</option>{members.filter(member => member.user_id !== currentUserId).map(member => <option value={member.user_id} key={member.user_id}>{member.email}</option>)}</select></label>
       {filterActive && <button className="text-link" type="button" onClick={reset}>Сбросить</button>}
     </div>
     <p className="filter-result">Показано: {filtered.length} из {inquiries.length}</p>
-    {filtered.length ? <div className="cloud-inquiry-list">{filtered.map(inquiry => <InquiryCard key={inquiry.id} inquiry={inquiry} clientName={clientNames.get(inquiry.client_id) ?? "Клиент"} canWrite={canWrite} notes={notesByInquiry.get(inquiry.id)} currentUserId={currentUserId} today={today}/>)}</div> : <div className="empty compact"><p>{filterActive ? "По этим фильтрам заявок нет." : "Добавьте первую заявку и проведите её по воронке."}</p></div>}
-    {archivedInquiries.length > 0 && <details className="archive-section"><summary>Архив заявок · {archivedInquiries.length}</summary><div className="cloud-inquiry-list">{archivedInquiries.map(inquiry => <InquiryCard key={inquiry.id} inquiry={inquiry} clientName={clientNames.get(inquiry.client_id) ?? "Клиент"} canWrite={canWrite} notes={notesByInquiry.get(inquiry.id)} currentUserId={currentUserId} today={today}/>)}</div></details>}
+    {filtered.length ? <div className="cloud-inquiry-list">{filtered.map(inquiry => <InquiryCard key={inquiry.id} inquiry={inquiry} clientName={clientNames.get(inquiry.client_id) ?? "Клиент"} canWrite={canWrite} notes={notesByInquiry.get(inquiry.id)} currentUserId={currentUserId} today={today} members={members}/>)}</div> : <div className="empty compact"><p>{filterActive ? "По этим фильтрам заявок нет." : "Добавьте первую заявку и проведите её по воронке."}</p></div>}
+    {archivedInquiries.length > 0 && <details className="archive-section"><summary>Архив заявок · {archivedInquiries.length}</summary><div className="cloud-inquiry-list">{archivedInquiries.map(inquiry => <InquiryCard key={inquiry.id} inquiry={inquiry} clientName={clientNames.get(inquiry.client_id) ?? "Клиент"} canWrite={canWrite} notes={notesByInquiry.get(inquiry.id)} currentUserId={currentUserId} today={today} members={members}/>)}</div></details>}
   </>;
 }

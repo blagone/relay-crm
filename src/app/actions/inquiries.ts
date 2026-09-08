@@ -26,6 +26,16 @@ async function writableWorkspace() {
 
 const errorState = (message: string): InquiryMutationState => ({ status: "error", message });
 
+async function validAssignee(
+  context: Exclude<Awaited<ReturnType<typeof writableWorkspace>>, { error: string }>,
+  assigneeId: string | null,
+) {
+  if (!assigneeId) return true;
+  const { data, error } = await context.supabase.from("memberships").select("user_id")
+    .eq("workspace_id", context.membership.workspace_id).eq("user_id", assigneeId).maybeSingle();
+  return !error && Boolean(data);
+}
+
 export async function createCloudInquiry(
   _state: InquiryMutationState,
   formData: FormData,
@@ -33,11 +43,12 @@ export async function createCloudInquiry(
   const parsed = createInquirySchema.safeParse({
     clientId: formData.get("clientId"), title: formData.get("title"),
     description: formData.get("description"), source: formData.get("source"),
-    amountMinor: formData.get("amount"), nextContactOn: formData.get("nextContactOn"),
+    amountMinor: formData.get("amount"), nextContactOn: formData.get("nextContactOn"), assigneeId: formData.get("assigneeId"),
   });
   if (!parsed.success) return errorState(parsed.error.issues[0]?.message ?? "Проверьте данные заявки");
   const context = await writableWorkspace();
   if ("error" in context) return errorState(context.error ?? "Не удалось открыть рабочее пространство.");
+  if (!await validAssignee(context, parsed.data.assigneeId)) return errorState("Участник команды недоступен.");
   const { data: client, error: clientError } = await context.supabase.from("clients").select("id")
     .eq("id", parsed.data.clientId).eq("workspace_id", context.membership.workspace_id).is("archived_at", null).maybeSingle();
   if (clientError || !client) return errorState("Активный клиент не найден.");
@@ -49,6 +60,7 @@ export async function createCloudInquiry(
     source: parsed.data.source,
     amount_minor: parsed.data.amountMinor,
     next_contact_on: parsed.data.nextContactOn || null,
+    assignee_id: parsed.data.assigneeId,
   });
   if (error) return errorState("Не удалось сохранить заявку. Повторите позже.");
   revalidatePath("/app");
@@ -63,15 +75,16 @@ export async function updateCloudInquiry(
     inquiryId: formData.get("inquiryId"), version: formData.get("version"),
     title: formData.get("title"), description: formData.get("description"),
     source: formData.get("source"), amountMinor: formData.get("amount"),
-    nextContactOn: formData.get("nextContactOn"),
+    nextContactOn: formData.get("nextContactOn"), assigneeId: formData.get("assigneeId"),
   });
   if (!parsed.success) return errorState(parsed.error.issues[0]?.message ?? "Проверьте данные заявки");
   const context = await writableWorkspace();
   if ("error" in context) return errorState(context.error ?? "Не удалось открыть рабочее пространство.");
+  if (!await validAssignee(context, parsed.data.assigneeId)) return errorState("Участник команды недоступен.");
   const { inquiryId, version, ...fields } = parsed.data;
   const { data, error } = await context.supabase.from("inquiries").update({
     title: fields.title, description: fields.description, source: fields.source,
-    amount_minor: fields.amountMinor, next_contact_on: fields.nextContactOn || null,
+    amount_minor: fields.amountMinor, next_contact_on: fields.nextContactOn || null, assignee_id: fields.assigneeId,
   }).eq("id", inquiryId).eq("workspace_id", context.membership.workspace_id)
     .eq("version", version).is("archived_at", null).select("id").maybeSingle();
   if (error || !data) return errorState("Заявка уже изменена или недоступна. Обновите страницу.");
