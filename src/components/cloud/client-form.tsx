@@ -2,7 +2,8 @@
 
 import { useActionState, useEffect, useRef } from "react";
 import { useFormStatus } from "react-dom";
-import { createCloudClient, initialCreateClientState } from "@/app/actions/clients";
+import { createCloudClient } from "@/app/actions/clients";
+import { initialCreateClientState } from "@/lib/cloud/client-state";
 
 function SubmitButton() {
   const { pending } = useFormStatus();

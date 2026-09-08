@@ -2,10 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { createClientSchema } from "@/lib/cloud/client-input";
+import type { CreateClientState } from "@/lib/cloud/client-state";
 import { createServerSupabase } from "@/lib/supabase/server";
-
-export type CreateClientState = { status: "idle" | "success" | "error"; message?: string };
-export const initialCreateClientState: CreateClientState = { status: "idle" };
 
 export async function createCloudClient(
   _previousState: CreateClientState,
