@@ -1,0 +1,22 @@
+Relay CRM reports verification
+Changed branch/field: app reports route; tenant-scoped inquiry reporting, period parsing, funnel/conversion and manager workload.
+MODIFIED_FILE: D:/Data/SystemX/Projects/client-crm/artifacts/verification/relay-crm-reports-v1/MODIFIED_FILE.ts
+DIFF_FILE: D:/Data/SystemX/Projects/client-crm/artifacts/verification/relay-crm-reports-v1/DIFF_FILE.diff
+VERIFICATION: D:/Data/SystemX/Projects/client-crm/artifacts/verification/relay-crm-reports-v1/VERIFICATION.txt
+ROLLBACK: D:/Data/SystemX/Projects/client-crm/artifacts/verification/relay-crm-reports-v1/ROLLBACK.sh
+Original state: report files/routes absent at Git HEAD 6de58d0.
+Modified SHA256: 5977753D6FBC063937841B040A954AAB2A6FB996F401C0704C4180C50D70D7A3
+BASELINE command: npm test
+BASELINE input: Git HEAD 6de58d0 worktree
+BASELINE literal result: Test Files 10 passed (10); Tests 58 passed (58)
+BASELINE exit status: 0
+MODIFIED command: npm test && npm run typecheck && npm run lint && npm run build && git diff --check
+MODIFIED input: working tree with reports implementation
+MODIFIED literal result: Test Files 13 passed (13); Tests 71 passed (71); typecheck PASS; lint PASS; Compiled successfully; /app/reports dynamic route; git diff --check PASS
+MODIFIED exit status: 0
+ROLLBACK command: C:/Program Files/Git/bin/bash.exe artifacts/verification/relay-crm-reports-v1/ROLLBACK.sh D:/Data/SystemX/Documents/Codex/2026-09-08/relay-crm-reports-rollback-check
+ROLLBACK input: detached Git HEAD fixture
+ROLLBACK literal result: ROLLBACK_STATUS=clean; reports route absent; original navigation/styles restored
+ROLLBACK exit status: 0
+Restored behavior/status: baseline has no /app/reports route or reports navigation/style additions. Working MODIFIED_FILE remains changed.
+Migration required: no.

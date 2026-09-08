@@ -19,7 +19,7 @@ export function CloudShell({ data, email }: { data: CloudWorkspaceDTO; email?: s
   const canWrite = data.role !== "viewer";
   const today = moscowDate();
   return <div className="cloud-shell">
-    <aside><div className="brand"><span>R</span><strong>Relay</strong></div><nav><a href="#today">Сегодня</a><a href="#overview">Обзор</a><a href="#inquiries">Заявки</a><a href="#clients">Клиенты</a><a href="#activity">История</a><Link href="/app/team">Команда</Link></nav><form action={logout}><button>Выйти</button></form></aside>
+    <aside><div className="brand"><span>R</span><strong>Relay</strong></div><nav><a href="#today">Сегодня</a><a href="#overview">Обзор</a><a href="#inquiries">Заявки</a><a href="#clients">Клиенты</a><a href="#activity">История</a><Link href="/app/reports">Отчёты</Link><Link href="/app/team">Команда</Link></nav><form action={logout}><button>Выйти</button></form></aside>
     <main>
       <div className="cloud-head"><div><p className="eyebrow">{data.role.toUpperCase()}</p><h1>{data.workspace.name}</h1><span>{email}</span></div><span className="cloud-badge">Supabase cloud</span></div>
       <section id="overview" className="metrics"><article><span>В работе</span><strong>{active.length}</strong><small>активные заявки</small></article><article><span>Воронка</span><strong>{money(pipeline)}</strong><small>без архива</small></article><article><span>Выиграно</span><strong>{money(won)}</strong><small>без архива</small></article><article><span>Клиенты</span><strong>{data.clients.length}</strong><small>активные</small></article></section>
