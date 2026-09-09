@@ -1,5 +1,12 @@
 # Relay CRM
 
+**Демо:** https://client-crm-ebon.vercel.app/demo · **Продуктовая страница:** https://client-crm-ebon.vercel.app/
+
+## Portfolio case
+
+Relay CRM — end-to-end портфолио-проект CRM для небольшой команды. Продукт показывает аутентификацию, tenant-isolation, роли, клиентов, воронку, задачи, отчётность и адаптивный интерфейс.
+
+
 Relay — компактная русскоязычная CRM для фрилансера или небольшой студии.
 
 ## Два явных режима
