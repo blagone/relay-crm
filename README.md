@@ -9,6 +9,20 @@ Relay CRM — end-to-end портфолио-проект CRM для неболь
 
 Relay — компактная русскоязычная CRM для фрилансера или небольшой студии.
 
+## Скриншоты
+
+### Портфолио-страница
+
+![Portfolio landing](public/portfolio/landing.png)
+
+### Рабочий кабинет
+
+![Relay CRM dashboard](public/portfolio/dashboard.png)
+
+### Отчёты
+
+![Relay CRM reports](public/portfolio/reports.png)
+
 ## Два явных режима
 
 ### `/demo` — локальное портфолио-демо
