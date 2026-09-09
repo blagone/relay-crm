@@ -102,7 +102,7 @@ export function InquiryCard({ inquiry, clientName, canWrite, notes = [], current
           </section>
         </>}
         {(archived || !canWrite) && notes.length > 0 && <section className="cloud-notes"><h3>Заметки · {notes.length}</h3>{notes.map(note => <article key={note.id}><p>{note.body}</p><small>{note.author_id === currentUserId ? "Вы" : `Участник ${note.author_id.slice(0, 8)}`} · {new Date(note.created_at).toLocaleString("ru-RU")}</small></article>)}</section>}
-        {canWrite && <form action={lifecycleAction} className="inquiry-lifecycle-form"><input type="hidden" name="inquiryId" value={inquiry.id}/><input type="hidden" name="version" value={inquiry.version}/>{lifecycleState.message && <p className={lifecycleState.status === "success" ? "form-success" : "form-error"} role="status">{lifecycleState.message}</p>}<MutationButton kind={archived ? "secondary" : "danger"}>{archived ? "Восстановить" : "Архивировать"}</MutationButton></form>}
+        {canWrite && <form action={lifecycleAction} className="inquiry-lifecycle-form" onSubmit={archived ? undefined : event => { if (!window.confirm(`Архивировать заявку «${inquiry.title}»?`)) event.preventDefault(); }}><input type="hidden" name="inquiryId" value={inquiry.id}/><input type="hidden" name="version" value={inquiry.version}/>{lifecycleState.message && <p className={lifecycleState.status === "success" ? "form-success" : "form-error"} role="status">{lifecycleState.message}</p>}<MutationButton kind={archived ? "secondary" : "danger"}>{archived ? "Восстановить" : "Архивировать"}</MutationButton></form>}
         </div>
       </div>
     </dialog>

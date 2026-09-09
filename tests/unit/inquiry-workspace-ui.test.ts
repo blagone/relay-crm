@@ -30,4 +30,19 @@ describe("inquiry workspace presentation", () => {
     expect(card).toContain('const overdue = open && Boolean(inquiry.next_contact_on && inquiry.next_contact_on < today)');
     expect(card).toContain('{contactLabel}</span>{overdue && <span className="overdue">Просрочено</span>}');
   });
+
+  it("persists the selected view and filters in an account and workspace scoped key", () => {
+    expect(workspace).toContain('relay-crm:inquiry-preferences:v1:${workspaceId ?? "workspace"}:${currentUserId}');
+    expect(workspace).toContain("window.localStorage.getItem(preferencesKey)");
+    expect(workspace).toContain("window.localStorage.setItem(preferencesKey");
+    expect(workspace).toContain("if (loadedPreferencesKey !== preferencesKey) return");
+    expect(workspace).toContain('parsed && typeof parsed === "object" && !Array.isArray(parsed)');
+    expect(workspace).toContain("catch {");
+  });
+
+  it("requires confirmation only before archiving an inquiry", () => {
+    expect(card).toContain("onSubmit={archived ? undefined");
+    expect(card).toContain("window.confirm(`Архивировать заявку");
+    expect(card).toContain("event.preventDefault()");
+  });
 });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { InquiryCard } from "@/components/cloud/inquiry-card";
 import type { InquiryStatus } from "@/lib/domain";
 import type { Database } from "@/lib/supabase/database.types";
@@ -19,7 +19,22 @@ const pipeline: { status: InquiryStatus; label: string; hint: string }[] = [
   { status: "lost", label: "Проиграно", hint: "Сделка закрыта" },
 ];
 
-export function InquiryWorkspace({ inquiries, archivedInquiries, clients, notes, canWrite, currentUserId, today, members }: {
+type InquiryPreferences = {
+  view: "board" | "list";
+  query: string;
+  status: string;
+  source: string;
+  clientId: string;
+  contactDate: string;
+  assignee: string;
+};
+
+const validViews = new Set(["board", "list"]);
+const validStatuses = new Set(["", "new", "contacted", "proposal", "won", "lost"]);
+const validSources = new Set(["", "website", "telegram", "referral", "other"]);
+
+export function InquiryWorkspace({ workspaceId, inquiries, archivedInquiries, clients, notes, canWrite, currentUserId, today, members }: {
+  workspaceId?: string;
   inquiries: Inquiry[]; archivedInquiries: Inquiry[]; clients: Client[]; notes: Note[];
   canWrite: boolean; currentUserId: string; today: string; members: WorkspaceMember[];
 }) {
@@ -31,6 +46,44 @@ export function InquiryWorkspace({ inquiries, archivedInquiries, clients, notes,
   const [assignee, setAssignee] = useState("");
   const [view, setView] = useState<"board" | "list">("board");
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [loadedPreferencesKey, setLoadedPreferencesKey] = useState<string | null>(null);
+  const preferencesKey = `relay-crm:inquiry-preferences:v1:${workspaceId ?? "workspace"}:${currentUserId}`;
+
+  useEffect(() => {
+    let saved: Partial<InquiryPreferences> = {};
+    let cancelled = false;
+    try {
+      const stored = window.localStorage.getItem(preferencesKey);
+      if (stored) {
+        const parsed: unknown = JSON.parse(stored);
+        if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) saved = parsed as Partial<InquiryPreferences>;
+      }
+    } catch {
+      // Storage can be unavailable or contain stale data; defaults remain usable.
+    }
+    queueMicrotask(() => {
+      if (cancelled) return;
+      if (typeof saved.view === "string" && validViews.has(saved.view)) setView(saved.view as "board" | "list");
+      if (typeof saved.query === "string") setQuery(saved.query.slice(0, 200));
+      if (typeof saved.status === "string" && validStatuses.has(saved.status)) setStatus(saved.status);
+      if (typeof saved.source === "string" && validSources.has(saved.source)) setSource(saved.source);
+      if (typeof saved.clientId === "string" && saved.clientId.length <= 64) setClientId(saved.clientId);
+      if (typeof saved.contactDate === "string" && (saved.contactDate === "" || /^\d{4}-\d{2}-\d{2}$/.test(saved.contactDate))) setContactDate(saved.contactDate);
+      if (typeof saved.assignee === "string" && saved.assignee.length <= 64) setAssignee(saved.assignee);
+      setLoadedPreferencesKey(preferencesKey);
+    });
+    return () => { cancelled = true; };
+  }, [preferencesKey]);
+
+  useEffect(() => {
+    if (loadedPreferencesKey !== preferencesKey) return;
+    const preferences: InquiryPreferences = { view, query, status, source, clientId, contactDate, assignee };
+    try {
+      window.localStorage.setItem(preferencesKey, JSON.stringify(preferences));
+    } catch {
+      // The CRM remains functional when private mode or quota blocks storage.
+    }
+  }, [loadedPreferencesKey, preferencesKey, view, query, status, source, clientId, contactDate, assignee]);
   const clientNames = useMemo(() => new Map(clients.map(client => [client.id, client.name])), [clients]);
   const notesByInquiry = useMemo(() => {
     const grouped = new Map<string, Note[]>();

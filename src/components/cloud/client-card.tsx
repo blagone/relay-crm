@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { archiveCloudClient, restoreCloudClient, updateCloudClient } from "@/app/actions/clients";
 import { initialClientMutationState } from "@/lib/cloud/client-state";
+import { safeEmailHref, safePhoneHref } from "@/lib/cloud/contact-links";
 import type { Database } from "@/lib/supabase/database.types";
 
 type Client = Database["public"]["Tables"]["clients"]["Row"];
@@ -15,6 +16,8 @@ function MutationButton({ children, kind = "primary" }: { children: string; kind
 
 export function ClientCard({ client, canWrite }: { client: Client; canWrite: boolean }) {
   const archived = client.archived_at !== null;
+  const phoneHref = safePhoneHref(client.phone);
+  const emailHref = safeEmailHref(client.email);
   const [editState, editAction] = useActionState(updateCloudClient, initialClientMutationState);
   const [lifecycleState, lifecycleAction] = useActionState(archived ? restoreCloudClient : archiveCloudClient, initialClientMutationState);
   return <article className={`cloud-client-card${archived ? " archived" : ""}`}>
@@ -22,10 +25,14 @@ export function ClientCard({ client, canWrite }: { client: Client; canWrite: boo
       <summary><span><strong>{client.name}</strong><small>{client.company || "Без компании"}</small></span><b>{archived ? "В архиве" : "Открыть"}</b></summary>
       <div className="client-detail">
         <dl>
-          <dt>Почта</dt><dd>{client.email || "—"}</dd>
-          <dt>Телефон</dt><dd>{client.phone || "—"}</dd>
+          <dt>Почта</dt><dd>{emailHref ? <a href={emailHref}>{client.email}</a> : "—"}</dd>
+          <dt>Телефон</dt><dd>{phoneHref ? <a href={phoneHref}>{client.phone}</a> : client.phone || "—"}</dd>
           <dt>Обновлён</dt><dd>{new Date(client.updated_at).toLocaleString("ru-RU")}</dd>
         </dl>
+        {(phoneHref || emailHref) && <div className="client-quick-actions" aria-label="Связаться с клиентом">
+          {phoneHref && <a className="secondary" href={phoneHref}>Позвонить</a>}
+          {emailHref && <a className="secondary" href={emailHref}>Написать</a>}
+        </div>}
         {canWrite && !archived && <form action={editAction} className="cloud-client-edit">
           <input type="hidden" name="clientId" value={client.id}/><input type="hidden" name="version" value={client.version}/>
           <div className="form-row">
@@ -39,7 +46,7 @@ export function ClientCard({ client, canWrite }: { client: Client; canWrite: boo
           {editState.message && <p className={editState.status === "success" ? "form-success" : "form-error"} role="status">{editState.message}</p>}
           <MutationButton>Сохранить изменения</MutationButton>
         </form>}
-        {canWrite && <form action={lifecycleAction} className="client-lifecycle-form">
+        {canWrite && <form action={lifecycleAction} className="client-lifecycle-form" onSubmit={archived ? undefined : event => { if (!window.confirm(`Архивировать клиента «${client.name}»?`)) event.preventDefault(); }}>
           <input type="hidden" name="clientId" value={client.id}/><input type="hidden" name="version" value={client.version}/>
           {lifecycleState.message && <p className={lifecycleState.status === "success" ? "form-success" : "form-error"} role="status">{lifecycleState.message}</p>}
           <MutationButton kind={archived ? "secondary" : "danger"}>{archived ? "Восстановить" : "Архивировать"}</MutationButton>

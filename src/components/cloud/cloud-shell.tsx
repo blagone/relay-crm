@@ -29,7 +29,7 @@ export function CloudShell({ data, email }: { data: CloudWorkspaceDTO; email?: s
         <div className="panel-head"><div><p className="eyebrow">ОБЛАЧНЫЙ CRUD</p><h2>Заявки</h2></div></div>
         {canWrite && data.clients.length > 0 && <details className="create-form-disclosure"><summary><span aria-hidden="true">＋</span> Новая заявка</summary><InquiryForm clients={data.clients} members={data.members} currentUserId={data.currentUserId}/></details>}
         {canWrite && data.clients.length === 0 && <div className="empty compact"><p>Сначала добавьте активного клиента.</p></div>}
-        <InquiryWorkspace inquiries={data.inquiries} archivedInquiries={data.archivedInquiries} clients={[...data.clients, ...data.archivedClients]} notes={data.notes} canWrite={canWrite} currentUserId={data.currentUserId} today={today} members={data.members}/>
+        <InquiryWorkspace key={`${data.workspace.id}:${data.currentUserId}`} workspaceId={data.workspace.id} inquiries={data.inquiries} archivedInquiries={data.archivedInquiries} clients={[...data.clients, ...data.archivedClients]} notes={data.notes} canWrite={canWrite} currentUserId={data.currentUserId} today={today} members={data.members}/>
       </section>
       <section id="clients" className="panel cloud-clients">
         <div className="panel-head"><div><p className="eyebrow">ОБЛАЧНЫЙ CRUD</p><h2>Клиенты</h2></div></div>

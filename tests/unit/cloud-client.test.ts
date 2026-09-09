@@ -40,4 +40,14 @@ describe("cloud client creation", () => {
     expect(action).toContain("archiveCloudClient");
     expect(action).toContain("restoreCloudClient");
   });
+
+  it("renders safe quick contact links and confirms archive only", () => {
+    const card = readFileSync("src/components/cloud/client-card.tsx", "utf8");
+    expect(card).toContain("safeEmailHref(client.email)");
+    expect(card).toContain("safePhoneHref(client.phone)");
+    expect(card).toContain('aria-label="Связаться с клиентом"');
+    expect(card).toContain("onSubmit={archived ? undefined");
+    expect(card).toContain("window.confirm(`Архивировать клиента");
+    expect(card).toContain("event.preventDefault()");
+  });
 });
