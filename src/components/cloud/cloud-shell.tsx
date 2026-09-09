@@ -5,6 +5,7 @@ import { ClientForm } from "@/components/cloud/client-form";
 import { InquiryForm } from "@/components/cloud/inquiry-form";
 import { InquiryWorkspace } from "@/components/cloud/inquiry-workspace";
 import { ManagerDashboard } from "@/components/cloud/manager-dashboard";
+import { CloudNavigation } from "@/components/cloud/cloud-navigation";
 import { money } from "@/lib/domain";
 import type { CloudWorkspaceDTO } from "@/lib/server/queries";
 
@@ -19,31 +20,25 @@ export function CloudShell({ data, email }: { data: CloudWorkspaceDTO; email?: s
   const canWrite = data.role !== "viewer";
   const today = moscowDate();
   return <div className="cloud-shell">
-    <aside><div className="brand"><span>R</span><strong>Relay</strong></div><nav><a href="#today">Сегодня</a><a href="#overview">Обзор</a><a href="#inquiries">Заявки</a><a href="#clients">Клиенты</a><a href="#activity">История</a><Link href="/app/calendar">Календарь</Link><Link href="/app/reports">Отчёты</Link><Link href="/app/team">Команда</Link><Link href="/app/data">Данные</Link></nav><form action={logout}><button>Выйти</button></form></aside>
+    <aside><div className="brand"><span>R</span><strong>Relay</strong></div><CloudNavigation/><form action={logout}><button>Выйти</button></form></aside>
     <main>
       <div className="cloud-head"><div><p className="eyebrow">{data.role.toUpperCase()}</p><h1>{data.workspace.name}</h1><span>{email}</span></div><span className="cloud-badge">Supabase cloud</span></div>
       <section id="overview" className="metrics"><article><span>В работе</span><strong>{active.length}</strong><small>активные заявки</small></article><article><span>Воронка</span><strong>{money(pipeline)}</strong><small>без архива</small></article><article><span>Выиграно</span><strong>{money(won)}</strong><small>без архива</small></article><article><span>Клиенты</span><strong>{data.clients.length}</strong><small>активные</small></article></section>
       <ManagerDashboard data={data} today={today}/>
       <section id="inquiries" className="panel cloud-inquiries">
         <div className="panel-head"><div><p className="eyebrow">ОБЛАЧНЫЙ CRUD</p><h2>Заявки</h2></div></div>
-        {canWrite && data.clients.length > 0 && <InquiryForm clients={data.clients} members={data.members} currentUserId={data.currentUserId}/>}
+        {canWrite && data.clients.length > 0 && <details className="create-form-disclosure"><summary><span aria-hidden="true">＋</span> Новая заявка</summary><InquiryForm clients={data.clients} members={data.members} currentUserId={data.currentUserId}/></details>}
         {canWrite && data.clients.length === 0 && <div className="empty compact"><p>Сначала добавьте активного клиента.</p></div>}
         <InquiryWorkspace inquiries={data.inquiries} archivedInquiries={data.archivedInquiries} clients={[...data.clients, ...data.archivedClients]} notes={data.notes} canWrite={canWrite} currentUserId={data.currentUserId} today={today} members={data.members}/>
       </section>
       <section id="clients" className="panel cloud-clients">
         <div className="panel-head"><div><p className="eyebrow">ОБЛАЧНЫЙ CRUD</p><h2>Клиенты</h2></div></div>
-        {canWrite && <ClientForm/>}
+        {canWrite && <details className="create-form-disclosure"><summary><span aria-hidden="true">＋</span> Новый клиент</summary><ClientForm/></details>}
         {data.clients.length ? <div className="cloud-client-list">{data.clients.map(client => <ClientCard key={client.id} client={client} canWrite={canWrite}/>)}</div> : <div className="empty"><p>Клиентов пока нет.</p></div>}
         {data.archivedClients.length > 0 && <details className="archive-section"><summary>Архив · {data.archivedClients.length}</summary><div className="cloud-client-list">{data.archivedClients.map(client => <ClientCard key={client.id} client={client} canWrite={canWrite}/>)}</div></details>}
       </section>
     </main>
-    <nav className="cloud-mobile-nav" aria-label="Основная навигация">
-      <a href="#today"><span aria-hidden="true">◎</span>Сегодня</a>
-      <a href="#inquiries"><span aria-hidden="true">◇</span>Заявки</a>
-      <a href="#clients"><span aria-hidden="true">○</span>Клиенты</a>
-      <Link href="/app/calendar"><span aria-hidden="true">□</span>Календарь</Link>
-      <Link href="/app/team"><span aria-hidden="true">☆</span>Команда</Link>
-    </nav>
+    <CloudNavigation mobile/>
   </div>;
 }
 

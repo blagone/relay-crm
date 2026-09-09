@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useCallback, useEffect, useRef } from "react";
 import { useFormStatus } from "react-dom";
 import { InquiryAttachments } from "@/components/cloud/inquiry-attachments";
 import {
@@ -34,10 +34,36 @@ export function InquiryCard({ inquiry, clientName, canWrite, notes = [], current
   const [lifecycleState, lifecycleAction] = useActionState(archived ? restoreCloudInquiry : archiveCloudInquiry, initialInquiryMutationState);
   const tomorrow = addDays(today, 1);
   const nextWeek = addDays(today, 7);
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const hash = `inquiry-${inquiry.id}`;
+  const openDrawer = useCallback(() => {
+    if (!dialogRef.current?.open) dialogRef.current?.showModal();
+    history.replaceState(null, "", `#${hash}`);
+  }, [hash]);
+  const closeDrawer = useCallback(() => dialogRef.current?.close(), []);
+  const clearHash = useCallback(() => {
+    if (window.location.hash === `#${hash}`) history.replaceState(null, "", `${window.location.pathname}${window.location.search}`);
+  }, [hash]);
+  useEffect(() => {
+    const syncWithHash = () => {
+      if (window.location.hash === `#${hash}`) {
+        if (!dialogRef.current?.open) dialogRef.current?.showModal();
+      } else if (dialogRef.current?.open) {
+        dialogRef.current.close();
+      }
+    };
+    syncWithHash();
+    window.addEventListener("hashchange", syncWithHash);
+    return () => window.removeEventListener("hashchange", syncWithHash);
+  }, [hash]);
   return <article id={`inquiry-${inquiry.id}`} className={`cloud-inquiry-card${archived ? " archived" : ""}`}>
-    <details>
-      <summary><span><strong>{inquiry.title}</strong><small>{clientName}</small></span><span className={`status ${inquiry.status}`}>{statusLabel[inquiry.status]}</span><b>{money(inquiry.amount_minor)}</b></summary>
-      <div className="inquiry-detail">
+    <button type="button" className="inquiry-card-trigger" onClick={openDrawer} aria-haspopup="dialog">
+      <span><strong>{inquiry.title}</strong><small>{clientName}</small></span><span className={`status ${inquiry.status}`}>{statusLabel[inquiry.status]}</span><b>{money(inquiry.amount_minor)}</b><span className="inquiry-open-icon" aria-hidden="true">→</span>
+    </button>
+    <dialog ref={dialogRef} className="inquiry-drawer" onClose={clearHash} onClick={event => { if (event.target === dialogRef.current) closeDrawer(); }} aria-labelledby={`${hash}-title`}>
+      <div className="inquiry-drawer-sheet">
+        <header className="inquiry-drawer-head"><div><small>{clientName}</small><h2 id={`${hash}-title`}>{inquiry.title}</h2><div><span className={`status ${inquiry.status}`}>{statusLabel[inquiry.status]}</span><strong>{money(inquiry.amount_minor)}</strong></div></div><button type="button" onClick={closeDrawer} className="drawer-close" aria-label="Закрыть карточку">×</button></header>
+        <div className="inquiry-detail">
         <InquiryAttachments inquiryId={inquiry.id} canWrite={canWrite} archived={archived}/>
         <p>{inquiry.description || "Описание не добавлено."}</p>
         <dl><dt>Источник</dt><dd>{inquiry.source}</dd><dt>Ответственный</dt><dd>{inquiry.assignee_id ? (inquiry.assignee_id === currentUserId ? "Вы" : members.find(member => member.user_id === inquiry.assignee_id)?.email ?? "Участник") : "Не назначен"}</dd><dt>Следующий контакт</dt><dd>{inquiry.next_contact_on ? new Date(`${inquiry.next_contact_on}T00:00:00`).toLocaleDateString("ru-RU") : "—"}</dd><dt>Обновлена</dt><dd>{new Date(inquiry.updated_at).toLocaleString("ru-RU")}</dd></dl>
@@ -71,8 +97,9 @@ export function InquiryCard({ inquiry, clientName, canWrite, notes = [], current
         </>}
         {(archived || !canWrite) && notes.length > 0 && <section className="cloud-notes"><h3>Заметки · {notes.length}</h3>{notes.map(note => <article key={note.id}><p>{note.body}</p><small>{note.author_id === currentUserId ? "Вы" : `Участник ${note.author_id.slice(0, 8)}`} · {new Date(note.created_at).toLocaleString("ru-RU")}</small></article>)}</section>}
         {canWrite && <form action={lifecycleAction} className="inquiry-lifecycle-form"><input type="hidden" name="inquiryId" value={inquiry.id}/><input type="hidden" name="version" value={inquiry.version}/>{lifecycleState.message && <p className={lifecycleState.status === "success" ? "form-success" : "form-error"} role="status">{lifecycleState.message}</p>}<MutationButton kind={archived ? "secondary" : "danger"}>{archived ? "Восстановить" : "Архивировать"}</MutationButton></form>}
+        </div>
       </div>
-    </details>
+    </dialog>
   </article>;
 }
 
