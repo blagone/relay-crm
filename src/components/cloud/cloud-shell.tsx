@@ -5,6 +5,7 @@ import { ClientForm } from "@/components/cloud/client-form";
 import { InquiryForm } from "@/components/cloud/inquiry-form";
 import { InquiryWorkspace } from "@/components/cloud/inquiry-workspace";
 import { ManagerDashboard } from "@/components/cloud/manager-dashboard";
+import { GlobalSearch } from "@/components/cloud/global-search";
 import { CloudNavigation } from "@/components/cloud/cloud-navigation";
 import { money } from "@/lib/domain";
 import type { CloudWorkspaceDTO } from "@/lib/server/queries";
@@ -22,7 +23,7 @@ export function CloudShell({ data, email }: { data: CloudWorkspaceDTO; email?: s
   return <div className="cloud-shell">
     <aside><div className="brand"><span>R</span><strong>Relay</strong></div><CloudNavigation/><form action={logout}><button>Выйти</button></form></aside>
     <main>
-      <div className="cloud-head"><div><p className="eyebrow">{data.role.toUpperCase()}</p><h1>{data.workspace.name}</h1><span>{email}</span></div><span className="cloud-badge">Supabase cloud</span></div>
+      <div className="cloud-head"><div><p className="eyebrow">{data.role.toUpperCase()}</p><h1>{data.workspace.name}</h1><span>{email}</span></div><div className="cloud-head-tools"><GlobalSearch clients={data.clients.map(client => ({ id: client.id, name: client.name, company: client.company }))} inquiries={data.inquiries.map(inquiry => ({ id: inquiry.id, title: inquiry.title, description: inquiry.description, clientName: data.clients.find(client => client.id === inquiry.client_id)?.name ?? "Клиент" }))}/><span className="cloud-badge">Supabase cloud</span></div></div>
       <section id="overview" className="metrics"><article><span>В работе</span><strong>{active.length}</strong><small>активные заявки</small></article><article><span>Воронка</span><strong>{money(pipeline)}</strong><small>без архива</small></article><article><span>Выиграно</span><strong>{money(won)}</strong><small>без архива</small></article><article><span>Клиенты</span><strong>{data.clients.length}</strong><small>активные</small></article></section>
       <ManagerDashboard data={data} today={today}/>
       <section id="inquiries" className="panel cloud-inquiries">
