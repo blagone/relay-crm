@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { clientLifecycleSchema, createClientSchema, updateClientSchema } from "@/lib/cloud/client-input";
 import type { ClientMutationState, CreateClientState } from "@/lib/cloud/client-state";
+import { duplicateClientMatches } from "@/lib/cloud/client-duplicates";
 import { createServerSupabase } from "@/lib/supabase/server";
 
 async function authenticatedWorkspace() {
@@ -39,6 +40,8 @@ export async function createCloudClient(
   if ("error" in context) return { status: "error", message: context.error };
   const { supabase, membership } = context;
 
+  const duplicateError = await clientDuplicateError(supabase, membership.workspace_id, parsed.data);
+  if (duplicateError) return { status: "error", message: duplicateError };
   const { error: insertError } = await supabase.from("clients").insert({
     workspace_id: membership.workspace_id,
     name: parsed.data.name,
@@ -65,6 +68,8 @@ export async function updateCloudClient(
   const context = await authenticatedWorkspace();
   if ("error" in context) return { status: "error", message: context.error };
   const { clientId, version, ...fields } = parsed.data;
+  const duplicateError = await clientDuplicateError(context.supabase, context.membership.workspace_id, fields, clientId);
+  if (duplicateError) return { status: "error", message: duplicateError };
   const { data, error } = await context.supabase.from("clients").update({
     ...fields, email: fields.email || null, phone: fields.phone || null,
   }).eq("id", clientId).eq("workspace_id", context.membership.workspace_id)
@@ -94,4 +99,12 @@ export async function archiveCloudClient(_state: ClientMutationState, formData: 
 
 export async function restoreCloudClient(_state: ClientMutationState, formData: FormData) {
   return setClientArchived(formData, false);
+}
+
+async function clientDuplicateError(supabase: Awaited<ReturnType<typeof createServerSupabase>>, workspaceId: string, candidate: { email: string; phone: string }, excludeId?: string) {
+  if (!candidate.email && !candidate.phone) return null;
+  const { data, error } = await supabase.from("clients").select("id,name,email,phone").eq("workspace_id", workspaceId).is("archived_at", null).limit(1000);
+  if (error) return "Не удалось проверить дубликаты клиента. Повторите позже.";
+  const duplicates = duplicateClientMatches(data ?? [], candidate, excludeId);
+  return duplicates.length ? `Похожий клиент уже есть: ${duplicates.slice(0, 2).map(item => item.name).join(", ")}. Проверьте почту или телефон.` : null;
 }

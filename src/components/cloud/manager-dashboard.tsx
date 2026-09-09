@@ -58,6 +58,8 @@ export function ManagerDashboard({ data, today }: { data: CloudWorkspaceDTO; tod
         <article className={unassigned.length ? "attention-list overdue" : "attention-list"}><h3>Без ответственного · {unassigned.length}</h3>{unassigned.slice(0, 10).map(item => <a href={`#inquiry-${item.id}`} key={item.id}><strong>{item.title}</strong><span>Назначить</span></a>)}{!unassigned.length && <p>Все заявки назначены.</p>}</article>
       </div>
     </section>
+
+    <section className="panel task-feed" aria-labelledby="task-feed-heading"><div className="panel-head"><div><p className="eyebrow">ЗАДАЧИ</p><h2 id="task-feed-heading">Контакты на ближайшие 7 дней</h2></div><span>{[...overdue, ...upcoming].length} задач</span></div><div className="task-feed-list">{[...overdue, ...upcoming].map(item => <a href={`#inquiry-${item.id}`} key={item.id} className={item.next_contact_on && item.next_contact_on < today ? "overdue" : ""}><span>{item.next_contact_on === today ? "Сегодня" : formatDate(item.next_contact_on!)}</span><strong>{item.title}</strong><small>{item.assignee_id === data.currentUserId ? "Вы" : "Участник"}</small></a>)}{![...overdue, ...upcoming].length && <p>На ближайшие 7 дней контактов нет.</p>}</div></section>
     <section id="activity" className="panel cloud-activity">
       <div className="panel-head"><div><p className="eyebrow">ИСТОРИЯ</p><h2>Последние действия</h2></div>{data.activity.length > 0 && <span>{data.activity.length} событий</span>}</div>
       <div className="activity">{recentActivity.map(renderActivity)}{!data.activity.length && <div className="empty compact"><p>История появится после первого действия.</p></div>}</div>

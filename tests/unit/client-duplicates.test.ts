@@ -1,0 +1,3 @@
+import { describe, expect, it } from "vitest";
+import { duplicateClientMatches, normalizeClientPhone } from "../../src/lib/cloud/client-duplicates";
+describe("client duplicates", () => { const clients=[{id:"1",name:"Анна",email:"anna@example.com",phone:"+7 999 111-22-33"}]; it("normalizes contact identity",()=>expect(normalizeClientPhone("+7 (999) 111-22-33")).toBe("+79991112233")); it("finds email and phone matches",()=>expect(duplicateClientMatches(clients,{email:"ANNA@example.com",phone:""})).toHaveLength(1)); it("excludes the current client",()=>expect(duplicateClientMatches(clients,{email:"anna@example.com",phone:""},"1")).toHaveLength(0)); });

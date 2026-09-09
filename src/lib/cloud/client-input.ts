@@ -8,7 +8,7 @@ const optionalEmail = z.string().trim().max(254, "Почта слишком дл
 export const createClientSchema = z.object({
   name: z.string().trim().min(1, "Укажите имя клиента").max(120, "Имя слишком длинное"),
   company: z.string().trim().max(160, "Название компании слишком длинное"),
-  email: optionalEmail,
+  email: optionalEmail.transform(value => value.toLocaleLowerCase("en")),
   phone: z.string().trim().max(40, "Телефон слишком длинный"),
 });
 
