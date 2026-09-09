@@ -2,6 +2,7 @@
 
 import { useActionState, useCallback, useEffect, useRef } from "react";
 import { useFormStatus } from "react-dom";
+import { InquiryMessageTemplates } from "@/components/cloud/inquiry-message-templates";
 import { InquiryAttachments } from "@/components/cloud/inquiry-attachments";
 import {
   archiveCloudInquiry,
@@ -71,6 +72,7 @@ export function InquiryCard({ inquiry, clientName, canWrite, notes = [], current
         <header className="inquiry-drawer-head"><div><small>{clientName}</small><h2 id={`${hash}-title`}>{inquiry.title}</h2><div><span className={`status ${inquiry.status}`}>{statusLabel[inquiry.status]}</span><strong>{money(inquiry.amount_minor)}</strong></div></div><button type="button" onClick={closeDrawer} className="drawer-close" aria-label="Закрыть карточку">×</button></header>
         <div className="inquiry-detail">
         <InquiryAttachments inquiryId={inquiry.id} canWrite={canWrite} archived={archived}/>
+        {!archived && <InquiryMessageTemplates clientName={clientName} inquiryTitle={inquiry.title} nextContactOn={inquiry.next_contact_on}/>}
         <p>{inquiry.description || "Описание не добавлено."}</p>
         <dl><dt>Источник</dt><dd>{inquiry.source}</dd><dt>Ответственный</dt><dd>{assigneeLabel}</dd><dt>Следующий контакт</dt><dd>{inquiry.next_contact_on ? new Date(`${inquiry.next_contact_on}T00:00:00`).toLocaleDateString("ru-RU") : "—"}</dd><dt>Обновлена</dt><dd>{new Date(inquiry.updated_at).toLocaleString("ru-RU")}</dd></dl>
         {canWrite && !archived && <>

@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import { BrowserReminders } from "@/components/cloud/browser-reminders";
 import { money } from "@/lib/domain";
 import type { CloudWorkspaceDTO } from "@/lib/server/queries";
 
@@ -48,6 +49,7 @@ export function ManagerDashboard({ data, today }: { data: CloudWorkspaceDTO; tod
         </article>)}
       </div>
     </section>
+    <BrowserReminders overdue={overdue.length} today={assignedToMe.filter(item => item.next_contact_on === today).length}/>
     <section id="today" className="manager-today">
       <div className="panel-head"><div><p className="eyebrow">РАБОЧИЙ ДЕНЬ</p><h2>Сегодня</h2></div><span>{formatDate(today)}</span></div>
       <div className="attention-columns">
